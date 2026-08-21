@@ -1,0 +1,116 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>C · Orbit</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+@font-face{font-family:Archivo;src:url('fonts/archivo-latin-400-normal.woff2') format('woff2');font-weight:400;font-display:block}
+@font-face{font-family:Archivo;src:url('fonts/archivo-latin-500-normal.woff2') format('woff2');font-weight:500;font-display:block}
+@font-face{font-family:Archivo;src:url('fonts/archivo-latin-600-normal.woff2') format('woff2');font-weight:600;font-display:block}
+*{box-sizing:border-box}
+:root{--ink:#1d1726;--soft:#6f6678;--ground:#f4efe6;--rule:#ddd2c0;--hot:#c02f4b}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-size:16px;line-height:1.55}
+.wrap{max-width:1360px;margin:0 auto;padding:34px 44px 34px}
+.mast{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--rule);padding-bottom:10px}
+.mast h1{margin:0;font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+.mast p{margin:0;font-size:12.5px;color:var(--soft);max-width:46ch;text-align:right}
+.stage{display:grid;grid-template-columns:400px minmax(0,1fr);gap:40px;align-items:center;margin-top:16px}
+.col{padding-right:8px}
+.num{font-size:60px;font-weight:600;letter-spacing:-.035em;line-height:.95;font-variant-numeric:tabular-nums;color:var(--hot);margin-bottom:10px}
+.lede{font-size:21px;line-height:1.24;margin:0;max-width:22ch}
+.after{font-size:14.5px;color:var(--soft);margin:20px 0 0}
+.after b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+.kick{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--rule);font-size:15px;font-weight:500}
+.key{margin-top:22px;font-size:11.5px;color:var(--soft);letter-spacing:.02em;line-height:1.7}
+.key i{display:inline-block;width:22px;height:6px;border-radius:3px;vertical-align:middle;margin-right:7px}
+canvas{display:block;width:100%}
+.foot{border-top:1px solid var(--rule);margin-top:8px;padding-top:10px;font-size:11.5px;color:var(--soft)}
+</style></head><body>
+<div class="wrap">
+  <div class="mast"><h1 id="t"></h1><p id="s"></p></div>
+  <div class="stage">
+    <div class="col">
+      <div class="num" id="n"></div>
+      <p class="lede" id="l"></p>
+      <p class="after" id="af"></p>
+      <p class="kick" id="k"></p>
+      <div class="key">
+        <div><i style="background:linear-gradient(90deg,#f7c86a,#8e1a4e)"></i>inside the ring · read less than before</div>
+        <div><i style="background:linear-gradient(90deg,#9fe3cf,#5b3fa8)"></i>outside the ring · read more than before</div>
+        <div style="margin-top:6px">Each thread is one subject: out to the peak, back down over sixty days, ending where it stood a year later.</div>
+      </div>
+    </div>
+    <canvas id="cv"></canvas>
+  </div>
+  <p class="foot" id="f"></p>
+</div>
+<script src="data.js"></script><script src="common.js"></script><script src="copy.js"></script>
+<script>
+t.textContent=COPY.title; s.textContent=COPY.stand; n.textContent=COPY.heroNum;
+l.textContent=COPY.heroLine; af.innerHTML=COPY.after.replace(/([\d,]{3,})/g,'<b>$1</b>');
+document.getElementById('k').textContent=COPY.kicker; f.textContent=COPY.foot;
+
+ready(function(){
+const cv=document.getElementById('cv');
+const CW=Math.min(cv.parentElement.clientWidth-440,800), H=690, ctx=hidpi(cv,CW,H);
+const cx=CW/2, cy=H/2, r0=132, KR=50;
+const R=v=>r0+KR*Math.log10(Math.max(v,0.24));
+const S=WITH_FLOOR.slice().sort((a,b)=>a.floor-b.floor);
+const N=S.length, slot=2*Math.PI/N, drift=slot*2.1;
+const nBelow=S.filter(e=>e.floor<0).length;
+// rotate so the block that ends below sits across the top
+const A0=-Math.PI/2-(nBelow/2)*slot;
+const P=(r,th)=>[cx+r*Math.cos(th),cy+r*Math.sin(th)];
+
+ctx.fillStyle='rgba(192,47,75,.055)';
+ctx.beginPath();ctx.arc(cx,cy,R(1),0,7);ctx.fill();
+[[100,'100x'],[10,'10x']].forEach(([v,lab])=>{
+  ctx.strokeStyle='rgba(29,23,38,.12)';ctx.lineWidth=1;ctx.setLineDash([2,4]);
+  ctx.beginPath();ctx.arc(cx,cy,R(v),0,7);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='400 10.5px Archivo';ctx.textAlign='center';
+  const lx=cx,ly=cy+R(v),w=ctx.measureText(lab).width+10;
+  ctx.fillStyle='#f4efe6';ctx.fillRect(lx-w/2,ly-8,w,15);
+  ctx.fillStyle='rgba(111,102,120,1)';ctx.fillText(lab,lx,ly+3);});
+ctx.strokeStyle='rgba(29,23,38,.7)';ctx.lineWidth=1.5;
+ctx.beginPath();ctx.arc(cx,cy,R(1),0,7);ctx.stroke();
+
+S.forEach((e,i)=>{
+  const th0=A0+i*slot, b=e.floor<0;
+  ctx.strokeStyle=floorColor(e.floor,b?.62:.34);ctx.lineWidth=b?1.9:1.4;ctx.lineJoin='round';
+  ctx.beginPath();
+  for(let d=0;d<=60;d++){const r=R(ratioAt(e,d)),th=th0+drift*Math.sqrt(d/60);
+    const p=P(r,th); d?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);}
+  ctx.stroke();
+  const thE=th0+drift, thF=th0+drift*1.55;
+  const a=P(R(ratioAt(e,60)),thE), q=P(R(floorRatio(e)),thF);
+  ctx.strokeStyle=floorColor(e.floor,b?.34:.16);ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(a[0],a[1]);
+  ctx.quadraticCurveTo((a[0]+q[0])/2+(cx-a[0])*0.10,(a[1]+q[1])/2+(cy-a[1])*0.10,q[0],q[1]);ctx.stroke();
+  ctx.fillStyle=floorColor(e.floor,.92);
+  ctx.beginPath();ctx.arc(q[0],q[1],b?3.4:2.7,0,7);ctx.fill();
+  ctx.fillStyle=floorColor(e.floor,b?.22:.13);
+  ctx.beginPath();ctx.arc(q[0],q[1],b?10:8,0,7);ctx.fill();
+  const h=P(R(ratioAt(e,0)),th0);
+  ctx.fillStyle=floorColor(e.floor,b?.85:.5);
+  ctx.beginPath();ctx.arc(h[0],h[1],1.1+Math.log10(e.peak)*0.40,0,7);ctx.fill();
+});
+
+// the ring, named from inside where nothing is drawn
+ctx.textAlign='center';
+ctx.font='600 10.5px Archivo';ctx.fillStyle='rgba(29,23,38,.9)';
+ctx.fillText('BEFORE THE EVENT',cx,cy+6);
+ctx.font='400 10.5px Archivo';ctx.fillStyle='rgba(111,102,120,.95)';
+ctx.fillText('the ring is each page at its own normal reading',cx,cy+21);
+
+// names, clamped to a radius that always fits the frame
+const OUT=Math.min(cx,cy)-16;
+ctx.font='500 11.5px Archivo';
+LABELS.forEach(a=>{const i=S.findIndex(e=>e.a===a);if(i<0)return;const e=S[i];
+  const th=A0+i*slot;
+  const rIn=Math.min(R(ratioAt(e,0))+8,OUT-22), rOut=Math.min(R(ratioAt(e,0))+26,OUT);
+  const p=P(rIn,th), q=P(rOut,th);
+  const right=Math.cos(th)>-0.12;
+  ctx.strokeStyle=floorColor(e.floor,.5);ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke();
+  ctx.textAlign=right?'left':'right';ctx.fillStyle='rgba(29,23,38,.92)';
+  ctx.fillText(shortName(a),q[0]+(right?4:-4),q[1]+4);});
+
+});
+</script></body></html>
