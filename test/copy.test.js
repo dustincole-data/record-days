@@ -4,6 +4,8 @@ import { experimental_AstroContainer as AstroContainer } from 'astro/container'
 import BeatFloor from '../src/components/BeatFloor.astro'
 import BeatBand from '../src/components/BeatBand.astro'
 import BeatModel from '../src/components/BeatModel.astro'
+import BeatDivergence from '../src/components/BeatDivergence.astro'
+import BeatCorrection from '../src/components/BeatCorrection.astro'
 import { fitDecay } from '../src/lib/metrics.js'
 
 // Beat 1 states published numbers, so it is gated against the probe output rather than
@@ -27,6 +29,8 @@ const SOURCES = [
   'src/components/BeatBand.astro',
   'src/components/BeatFloor.astro',
   'src/components/BeatModel.astro',
+  'src/components/BeatDivergence.astro',
+  'src/components/BeatCorrection.astro',
   'src/layouts/Base.astro',
   'src/pages/index.astro',
 ]
@@ -43,12 +47,20 @@ const strip = (html) =>
 let text
 let bandText
 let modelText
+let divText
+let corrText
+let divHtml
+let corrHtml
 let named
 beforeAll(async () => {
   const container = await AstroContainer.create()
   text = strip(await container.renderToString(BeatFloor))
   bandText = strip(await container.renderToString(BeatBand))
   modelText = strip(await container.renderToString(BeatModel))
+  divHtml = await container.renderToString(BeatDivergence)
+  corrHtml = await container.renderToString(BeatCorrection)
+  divText = strip(divHtml)
+  corrText = strip(corrHtml)
   named = floors.filter((r) => text.includes(r.article))
 })
 
@@ -149,6 +161,8 @@ describe('copy discipline', () => {
     expect(text).not.toMatch(banned)
     expect(bandText).not.toMatch(banned)
     expect(modelText).not.toMatch(banned)
+    expect(divText).not.toMatch(banned)
+    expect(corrText).not.toMatch(banned)
   })
 
   it('uses no em dashes', () => {
@@ -156,6 +170,8 @@ describe('copy discipline', () => {
     expect(text).not.toContain('—')
     expect(bandText).not.toContain('—')
     expect(modelText).not.toContain('—')
+    expect(divText).not.toContain('—')
+    expect(corrText).not.toContain('—')
   })
 })
 
@@ -502,5 +518,468 @@ describe('beat 3 claims trace to the data', () => {
     // masthead states a process the data rejects and nothing on the page says otherwise.
     expect(modelText).toMatch(/no such number/)
     expect(readFileSync('src/pages/index.astro', 'utf8')).toContain('<BeatModel />')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Beat 4, the floor distribution and the correction.
+// ---------------------------------------------------------------------------
+
+// The floor is published as a multiple of the clean baseline rather than as the delta
+// floor.json stores, so a rule at 1 is the baseline itself and a plain log axis carries
+// the whole range without a linear patch around zero. Printed to one place: the two files
+// disagree at the second place on 19 of the 57 rows, and at the first place on two rows,
+// neither of them named here.
+const mult1 = (floorValue) => (1 + floorValue).toFixed(1)
+const dataset4 = JSON.parse(readFileSync('src/data/dataset.json', 'utf8'))
+const dsRow = (name) => dataset4.events.find((e) => e.article === name)
+const probeRow = (name) => probe.find((r) => r.article === name)
+const med4 = (nums) => {
+  const s = [...nums].sort((a, b) => a - b)
+  const m = Math.floor(s.length / 2)
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
+}
+// The floor measured against the near window instead of the clean one. results2.json
+// stores it directly as res365; dataset.json stores no such field, so it is rebuilt there
+// from the year-later level the clean floor implies. Same window, same peak anchor.
+const nearFromProbe = (name) => probeRow(name).res365
+const nearFromDataset = (name) => {
+  const e = dsRow(name)
+  return (e.cleanBase * (1 + e.floor)) / e.nearBase - 1
+}
+const floorRows = floors
+const deathRows = floorRows.filter((r) => r.class === 'death')
+const lowest = floorRows.reduce((a, b) => (b.floor < a.floor ? b : a))
+const highest = floorRows.reduce((a, b) => (b.floor > a.floor ? b : a))
+const maxDeath = deathRows.reduce((a, b) => (b.floor > a.floor ? b : a))
+const THICK = 15
+const PHILIP = 'Prince Philip, Duke of Edinburgh'
+
+describe('beat 4 resolves the thin-class question before it states a class', () => {
+  // Spec 11 leaves this open: politics and sport are too thin for the class table and
+  // either the event list grows or those classes get dropped. The event list cannot grow
+  // here, so the beat states a class figure only where the class carries THICK subjects,
+  // and says on the page that the rest are drawn without being named.
+  const counts = Object.fromEntries(
+    [...new Set(floorRows.map((r) => r.class))].map((c) => [
+      c,
+      floorRows.filter((r) => r.class === c).length,
+    ])
+  )
+
+  it('finds exactly two classes thick enough to state', () => {
+    expect(counts).toEqual({
+      death: 25,
+      scandal: 15,
+      culture: 7,
+      sport: 5,
+      politics: 3,
+      disaster: 2,
+    })
+    const thick = Object.keys(counts).filter((c) => counts[c] >= THICK).sort()
+    expect(thick).toEqual(['death', 'scandal'])
+  })
+
+  it('agrees with dataset.json on every class count, so the ruling is not one file deep', () => {
+    for (const [cls, n] of Object.entries(counts)) {
+      const inDataset = dataset4.events.filter((e) => e.floor !== null && e.class === cls).length
+      expect(inDataset, cls).toBe(n)
+    }
+  })
+
+  it('names the two thick classes in the copy and none of the four thin ones', () => {
+    expect(divText).toMatch(/deaths/)
+    expect(divText).toMatch(/scandals/)
+    for (const cls of Object.keys(counts).filter((c) => counts[c] < THICK)) {
+      expect(divText.toLowerCase(), cls).not.toContain(cls)
+    }
+  })
+
+  it('says on the page that the thin classes are drawn and not named', () => {
+    const thin = Object.values(counts).filter((n) => n < THICK)
+    expect(divText).toContain(`${thin.length} carry`)
+    expect(divText).toContain(`${Math.max(...thin)} subjects or fewer`)
+  })
+})
+
+describe('beat 4 divergence claims trace to the data', () => {
+  it('the floor spans a sign change and a subject that ends the year fifty times higher', () => {
+    const both = [
+      floorRows.map((r) => r.floor),
+      dataset4.events.filter((e) => e.floor !== null).map((e) => e.floor),
+    ]
+    for (const source of both) {
+      expect(Math.min(...source)).toBeLessThan(0)
+      expect(Math.max(...source)).toBeGreaterThan(50)
+    }
+    expect(lowest.article).toBe('Ellen DeGeneres')
+    expect(highest.article).toBe('Jeffrey Epstein')
+    expect(floorRows.filter((r) => r.floor === 0)).toEqual([])
+  })
+
+  it('the fall never changes direction, which is what the floor is set against', () => {
+    // The contrast the beat draws: every t50 in the set is a positive duration, so the
+    // fall has a spread and no sign. The floor has both.
+    expect(probe.every((r) => r.t50 > 0)).toBe(true)
+    const fast = probe.reduce((a, b) => (b.t50 < a.t50 ? b : a))
+    const slow = probe.reduce((a, b) => (b.t50 > a.t50 ? b : a))
+    expect(fast.article).toBe('Manchester Arena bombing')
+    expect(slow.article).toBe('Anna Sorokin')
+    expect(divText).toContain(`${fast.t50} days`)
+    expect(divText).toContain(`${slow.t50} days`)
+  })
+
+  it('scandal reaches a higher floor than any death, and is not alone up there', () => {
+    const maxScandal = Math.max(
+      ...floorRows.filter((r) => r.class === 'scandal').map((r) => r.floor)
+    )
+    expect(maxScandal).toBeGreaterThan(maxDeath.floor)
+    // The spec's prose says scandal owns the top. Four subjects sit above every death and
+    // one of them is not a scandal, so the copy states the count and the share, never
+    // "only scandals".
+    const above = floorRows.filter((r) => r.floor > maxDeath.floor)
+    expect(above).toHaveLength(4)
+    expect(above.filter((r) => r.class === 'scandal')).toHaveLength(3)
+    expect(above.map((r) => r.article)).toContain('Caitlin Clark')
+    expect(divText).not.toMatch(/only scandals|all of them scandals/i)
+  })
+
+  it('the floor is not predicted by spike size, in either file', () => {
+    const rF = corr(floorRows.map((r) => Math.log10(r.peak)), floorRows.map((r) => r.floor))
+    const ds = dataset4.events.filter((e) => e.floor !== null)
+    const rD = corr(ds.map((e) => Math.log10(e.peak)), ds.map((e) => e.floor))
+    expect(Math.abs(rF)).toBeLessThan(0.15)
+    expect(Math.abs(rF).toFixed(2)).toBe(Math.abs(rD).toFixed(2))
+    expect(rF).toBeLessThan(0)
+    expect(divText).toContain(`r = −${Math.abs(rF).toFixed(2)}`)
+  })
+
+  it('prints only multiples the two files agree on at the place they are printed', () => {
+    const printed = ['Jeffrey Epstein', 'Ellen DeGeneres', 'Elizabeth II', 'George Michael']
+    for (const name of printed) {
+      const fromFloor = mult1(floorRows.find((r) => r.article === name).floor)
+      expect(mult1(dsRow(name).floor), name).toBe(fromFloor)
+      expect(divText, name).toContain(`${fromFloor} times`)
+      expect(divText, name).toContain(name)
+    }
+    // The two rows the files do not agree on at this place are not among them. If a later
+    // edit reaches for one, this names it rather than letting the copy state a digit only
+    // one file supports.
+    const split = floorRows
+      .filter((r) => mult1(r.floor) !== mult1(dsRow(r.article).floor))
+      .map((r) => r.article)
+      .sort()
+    expect(split).toEqual(['Caitlin Clark', 'Kirk Douglas'])
+    for (const name of split) expect(divText, name).not.toContain(name)
+  })
+
+  it('states the split at the rule as the counts on each side', () => {
+    const below = floorRows.filter((r) => r.floor < 0).length
+    expect(divText).toContain(`${below} of them`)
+    expect(divText).toContain(`${floorRows.length - below} above`)
+  })
+})
+
+describe('beat 4 draws the distribution it claims', () => {
+  const src = readFileSync('src/components/BeatDivergence.astro', 'utf8')
+  const sides = () => [...divHtml.matchAll(/data-mark data-side="(below|above)"/g)].map((m) => m[1])
+
+  it('draws one mark per floor-eligible subject', () => {
+    expect(divHtml.match(/data-mark/g) ?? []).toHaveLength(floorRows.length)
+  })
+
+  it('sorts the marks so the colour change is the sign change', () => {
+    const order = sides()
+    expect(order).toHaveLength(floorRows.length)
+    expect(order.indexOf('above')).toBe(floorRows.filter((r) => r.floor < 0).length)
+    expect(order.lastIndexOf('below')).toBe(order.indexOf('above') - 1)
+  })
+
+  it('gives each mark the side its own floor sign holds', () => {
+    const sorted = [...floorRows].sort((a, b) => a.floor - b.floor)
+    const order = sides()
+    for (let i = 0; i < sorted.length; i++) {
+      expect(order[i], sorted[i].article).toBe(sorted[i].floor < 0 ? 'below' : 'above')
+    }
+  })
+
+  it('is DOM rather than canvas, and takes no hover reveal that a phone cannot fire', () => {
+    expect(src).not.toContain('canvas')
+    expect(src).not.toContain('pointermove')
+    expect(src).not.toMatch(/addEventListener\(\s*'resize'/)
+  })
+
+  it('labels the axis so a reader can tell it is not linear', () => {
+    expect(divText).toMatch(/logarithmic/)
+  })
+})
+
+describe('beat 4 correction claims trace to the data', () => {
+  it('rebuilds the near-baseline floor to the probe field, on every row', () => {
+    for (const r of floorRows) {
+      expect(nearFromDataset(r.article).toFixed(2), r.article).toBe(
+        nearFromProbe(r.article).toFixed(2)
+      )
+    }
+  })
+
+  it('finds the near baseline inflated well above the clean one for Prince Philip', () => {
+    const p = dsRow(PHILIP)
+    expect(p.nearBase / p.cleanBase).toBeGreaterThan(1.5)
+    const runup = floorRows.find((r) => r.article === PHILIP).runup
+    expect((p.nearBase / p.cleanBase).toFixed(2)).toBe(runup.toFixed(2))
+    expect(corrText).toContain(`${runup} times`)
+  })
+
+  it('agrees with floor.json on the run-up of every subject, so 1.97 is not one file deep', () => {
+    for (const r of floorRows) {
+      const e = dsRow(r.article)
+      expect((e.nearBase / e.cleanBase).toFixed(2), r.article).toBe(r.runup.toFixed(2))
+    }
+  })
+
+  it('states a run-up that sits in particular subjects rather than across the deaths', () => {
+    const fromFile = med4(deathRows.map((r) => r.runup))
+    const fromDs = med4(
+      deathRows.map((r) => dsRow(r.article).nearBase / dsRow(r.article).cleanBase)
+    )
+    expect(fromDs.toFixed(2)).toBe(fromFile.toFixed(2))
+    expect(fromFile).toBeLessThan(1.1)
+    expect(corrText).toContain(`${fromFile.toFixed(2)} times`)
+  })
+
+  it('states the deaths that change sign against the deaths that carry a floor', () => {
+    // The plan says three of twenty-eight. Twenty-eight is the death count in
+    // results2.json; three of those have no clean baseline and cannot change sign at all.
+    // The denominator is the deaths a floor was measured for.
+    expect(probe.filter((r) => r.class === 'death')).toHaveLength(28)
+    expect(deathRows).toHaveLength(25)
+    const flipped = deathRows.filter(
+      (r) => Math.sign(r.floor) !== Math.sign(nearFromProbe(r.article))
+    )
+    const flippedDs = deathRows.filter(
+      (r) => Math.sign(dsRow(r.article).floor) !== Math.sign(nearFromDataset(r.article))
+    )
+    expect(flipped).toHaveLength(3)
+    expect(flippedDs).toHaveLength(3)
+    expect(corrText).toContain(`${flipped.length} of those ${deathRows.length}`)
+    expect(corrText).toContain(`${deathRows.length - flipped.length} hold`)
+  })
+
+  it('every sign change goes the same way, from below the near window to above the clean one', () => {
+    const flipped = floorRows.filter(
+      (r) => Math.sign(r.floor) !== Math.sign(nearFromProbe(r.article))
+    )
+    expect(flipped).toHaveLength(9)
+    expect(flipped.every((r) => nearFromProbe(r.article) < 0 && r.floor > 0)).toBe(true)
+  })
+
+  it('states the headline the correction moved, and both counts behind it', () => {
+    const belowNear = floorRows.filter((r) => nearFromProbe(r.article) < 0).length
+    const belowNearDs = floorRows.filter((r) => nearFromDataset(r.article) < 0).length
+    const belowClean = floorRows.filter((r) => r.floor < 0).length
+    expect(belowNear).toBe(25)
+    expect(belowNearDs).toBe(belowNear)
+    expect(belowClean).toBe(16)
+    expect(Math.round((100 * belowNear) / floorRows.length)).toBe(44)
+    expect(Math.round((100 * belowClean) / floorRows.length)).toBe(28)
+    expect(corrText).toContain(`${belowNear} of them below`)
+    expect(corrText).toContain(`${belowClean} below`)
+    expect(corrText).toContain('44%')
+    expect(corrText).toContain('28%')
+  })
+
+  it('states that the clean window moves subjects both ways, not only up', () => {
+    const up = floorRows.filter((r) => r.floor > nearFromProbe(r.article)).length
+    const down = floorRows.filter((r) => r.floor < nearFromProbe(r.article)).length
+    const upDs = floorRows.filter(
+      (r) => dsRow(r.article).floor > nearFromDataset(r.article)
+    ).length
+    const downDs = floorRows.filter(
+      (r) => dsRow(r.article).floor < nearFromDataset(r.article)
+    ).length
+    expect(up).toBe(39)
+    expect(down).toBe(18)
+    expect(up + down).toBe(floorRows.length)
+    expect(upDs).toBe(up)
+    expect(downDs).toBe(down)
+    expect(corrText).toContain(`${up} read higher`)
+    expect(corrText).toContain(`${down} read lower`)
+  })
+
+  it('prints both of the readings for Prince Philip, the near one and the published one', () => {
+    const row = floorRows.find((r) => r.article === PHILIP)
+    const nearPct = Math.round(Math.abs(nearFromProbe(PHILIP)) * 100)
+    expect(nearPct).toBe(74)
+    expect(Math.round(Math.abs(nearFromDataset(PHILIP)) * 100)).toBe(nearPct)
+    expect(corrText).toContain(`${nearPct}%`)
+    expect(corrText).toContain(`${pctOf(row.floor)}%`)
+    // The published reading is floor.json's, the same one beat 1 states. dataset.json
+    // reads one point lower on this subject, so the disagreement is pinned rather than
+    // rounded away, and the page never carries both.
+    expect(pctOf(row.floor)).toBe(49)
+    expect(pctOf(dsRow(PHILIP).floor)).toBe(50)
+    expect(text).toContain(`${pctOf(row.floor)}%`)
+    expect(corrText).not.toContain(`${pctOf(dsRow(PHILIP).floor)}%`)
+  })
+
+  it('never prints the year-later level, which floor.json rebuilds through a 2dp field', () => {
+    // floor.py wrote yr_later as baseline * (1 + res365) and res365 is stored to two
+    // places, so the field is a reconstruction and not a measurement. dataset.json puts
+    // Prince Philip at a different daily count. The two baselines either side of it are
+    // measured medians and are printed; the level between them is drawn and not stated.
+    const row = floorRows.find((r) => r.article === PHILIP)
+    const e = dsRow(PHILIP)
+    expect(row.yr_later).toBe(11031)
+    expect(Math.round(e.cleanBase * (1 + e.floor))).not.toBe(row.yr_later)
+    expect(corrText).not.toContain(row.yr_later.toLocaleString('en-US'))
+    expect(corrText).toContain(probeRow(PHILIP).baseline.toLocaleString('en-US'))
+    expect(corrText).toContain(row.clean_base.toLocaleString('en-US'))
+    expect(probeRow(PHILIP).baseline).toBe(e.nearBase)
+    expect(row.clean_base).toBe(Math.round(e.cleanBase))
+  })
+})
+
+describe('beat 4 numbers are rows or counts of rows', () => {
+  it('every number in the divergence beat traces', () => {
+    const allowed = new Set()
+    const allow = (n) => allowed.add(String(Number(n)))
+    for (const name of ['Jeffrey Epstein', 'Ellen DeGeneres', 'Elizabeth II', 'George Michael']) {
+      allow(mult1(floorRows.find((r) => r.article === name).floor))
+    }
+    allow(probe.reduce((a, b) => (b.t50 < a.t50 ? b : a)).t50)
+    allow(probe.reduce((a, b) => (b.t50 > a.t50 ? b : a)).t50)
+    allow(floorRows.length)
+    allow(floorRows.filter((r) => r.floor < 0).length)
+    allow(floorRows.filter((r) => r.floor >= 0).length)
+    const classes = [...new Set(floorRows.map((r) => r.class))]
+    for (const cls of classes) allow(floorRows.filter((r) => r.class === cls).length)
+    allow(classes.length)
+    allow(classes.filter((c) => floorRows.filter((r) => r.class === c).length < THICK).length)
+    allow(floorRows.filter((r) => r.floor > maxDeath.floor).length)
+    allow(
+      floorRows.filter((r) => r.floor > maxDeath.floor && r.class === 'scandal').length
+    )
+    allow(
+      Math.abs(
+        corr(floorRows.map((r) => Math.log10(r.peak)), floorRows.map((r) => r.floor))
+      ).toFixed(2)
+    )
+    // Axis ticks are positions on the scale, not claims. They are allowed only as the
+    // exact list the component generates, and every one has to sit inside the drawn range.
+    const AXIS = [0.5, 1, 2, 5, 10, 20, 50]
+    const lo = Math.min(...floorRows.map((r) => 1 + r.floor))
+    const hi = Math.max(...floorRows.map((r) => 1 + r.floor))
+    for (const t of AXIS) {
+      expect(t, `tick ${t}`).toBeGreaterThan(lo / 1.2)
+      expect(t, `tick ${t}`).toBeLessThan(hi * 1.2)
+      allow(t)
+    }
+
+    const untraceable = (divText.match(/\d[\d,]*(?:\.\d+)?/g) ?? [])
+      .map((n) => String(Number(n.replace(/,/g, ''))))
+      .filter((n) => !allowed.has(n))
+    expect(untraceable).toEqual([])
+  })
+
+  it('every number in the correction beat traces', () => {
+    const row = floorRows.find((r) => r.article === PHILIP)
+    const flips = deathRows.filter(
+      (r) => Math.sign(r.floor) !== Math.sign(nearFromProbe(r.article))
+    ).length
+    const belowNear = floorRows.filter((r) => nearFromProbe(r.article) < 0).length
+    const belowClean = floorRows.filter((r) => r.floor < 0).length
+    const allowed = new Set()
+    const allow = (n) => allowed.add(String(Number(n)))
+    allow(probeRow(PHILIP).baseline)
+    allow(row.clean_base)
+    allow(row.runup)
+    allow(pctOf(row.floor))
+    allow(Math.round(Math.abs(nearFromProbe(PHILIP)) * 100))
+    const [y, m, d] = row.event.split('-')
+    allow(y)
+    allow(m)
+    allow(d)
+    allow(med4(deathRows.map((r) => r.runup)).toFixed(2))
+    allow(deathRows.length)
+    allow(flips)
+    allow(deathRows.length - flips)
+    allow(floorRows.length)
+    allow(belowNear)
+    allow(belowClean)
+    allow(Math.round((100 * belowNear) / floorRows.length))
+    allow(Math.round((100 * belowClean) / floorRows.length))
+    allow(floorRows.filter((r) => r.floor > nearFromProbe(r.article)).length)
+    allow(floorRows.filter((r) => r.floor < nearFromProbe(r.article)).length)
+
+    const untraceable = (corrText.match(/\d[\d,]*(?:\.\d+)?/g) ?? [])
+      .map((n) => String(Number(n.replace(/,/g, ''))))
+      .filter((n) => !allowed.has(n))
+    expect(untraceable).toEqual([])
+  })
+})
+
+describe('beat 4 renders as written', () => {
+  it('joins no two words where the template breaks a line beside an expression', () => {
+    for (const t of [divText, corrText]) {
+      expect(t).not.toMatch(/[A-Za-z]\d|\d[A-Za-z]/)
+      expect(t).not.toMatch(/\.[A-Za-z]/)
+      expect(t).not.toMatch(/[A-Za-z],\d/)
+    }
+  })
+
+  it('is wired into the page after the beat that takes the name back', () => {
+    const page = readFileSync('src/pages/index.astro', 'utf8')
+    expect(page).toContain('<BeatDivergence />')
+    expect(page).toContain('<BeatCorrection />')
+    expect(page.indexOf('<BeatDivergence />')).toBeGreaterThan(page.indexOf('<BeatModel />'))
+    expect(page.indexOf('<BeatCorrection />')).toBeGreaterThan(page.indexOf('<BeatDivergence />'))
+  })
+})
+
+describe('beat 4 gates go red on a planted defect', () => {
+  // Every assertion above reads a committed file, and a committed file cannot be perturbed
+  // to prove the gate can fail. Each predicate is re-run here against an in-memory copy
+  // carrying one planted defect, and each has to flip.
+  const clone = () => JSON.parse(JSON.stringify(floorRows))
+
+  it('the sign-change gate fails when nothing in the set is below the rule', () => {
+    const rows = clone()
+    for (const r of rows) if (r.floor < 0) r.floor = 0.1
+    expect(Math.min(...rows.map((r) => r.floor))).not.toBeLessThan(0)
+  })
+
+  it('the thin-class rule fails when a thin class is padded past the threshold', () => {
+    const rows = clone()
+    let moved = 0
+    for (const r of rows) if (r.class === 'death' && moved++ < 13) r.class = 'politics'
+    const thick = [...new Set(rows.map((r) => r.class))].filter(
+      (c) => rows.filter((x) => x.class === c).length >= THICK
+    )
+    expect(thick).toContain('politics')
+  })
+
+  it('the two-file agreement gate fails when one file moves at the printed place', () => {
+    const planted = { ...dsRow('Jeffrey Epstein'), floor: highest.floor + 0.1 }
+    expect(mult1(planted.floor)).not.toBe(mult1(highest.floor))
+  })
+
+  it('the run-up gate fails when the near window matches the clean one', () => {
+    const p = { ...dsRow(PHILIP) }
+    p.nearBase = p.cleanBase
+    expect(p.nearBase / p.cleanBase).not.toBeGreaterThan(1.5)
+  })
+
+  it('the correction count fails when a planted row changes which side it is on', () => {
+    const rows = clone()
+    const target = rows.find((r) => r.floor < 0)
+    target.floor = 0.5
+    expect(rows.filter((r) => r.floor < 0).length).not.toBe(16)
+  })
+
+  it('the spike-size gate fails when the floor is made to follow the peak', () => {
+    const rows = clone().map((r) => ({ ...r, floor: Math.log10(r.peak) }))
+    const r = corr(rows.map((x) => Math.log10(x.peak)), rows.map((x) => x.floor))
+    expect(Math.abs(r)).not.toBeLessThan(0.15)
   })
 })

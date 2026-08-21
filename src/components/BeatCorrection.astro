@@ -1,0 +1,227 @@
+---
+import floors from '../../data/probe/floor.json'
+import probe from '../../data/probe/results2.json'
+import { median } from '../lib/metrics.js'
+
+// The kill attempt, shown. Every figure is floor.json's or results2.json's, and the copy
+// test recomputes each one from dataset.json as well, so a number that only one file
+// supports cannot reach the page.
+const PHILIP = 'Prince Philip, Duke of Edinburgh'
+const row = floors.find((r) => r.article === PHILIP)
+if (!row) throw new Error(`no floor.json row for ${PHILIP}`)
+
+// results2.json stores the floor measured against the near window as res365, over the same
+// days and the same peak anchor as the clean-window floor. It is the reading this beat is
+// arguing down.
+const probeOf = (name) => probe.find((r) => r.article === name)
+const near = (name) => probeOf(name).res365
+const nearBase = probeOf(PHILIP).baseline
+
+// The rounding rule beat 1 states its percentages under, kept the same here so the page
+// carries one rule. floor.json holds three decimals, so a row can land on an exact half.
+const roundHalfEven = (x) => {
+  const down = Math.trunc(x)
+  const frac = x - down
+  if (frac !== 0.5) return Math.round(x)
+  return down % 2 === 0 ? down : down + 1
+}
+const pctOf = (floorValue) => roundHalfEven(Math.abs(floorValue) * 100)
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December']
+const [year, month, day] = row.event.split('-')
+const died = `${Number(day)} ${MONTHS[Number(month) - 1]} ${year}`
+
+const num = (n) => n.toLocaleString('en-US')
+
+const deaths = floors.filter((r) => r.class === 'death')
+const flips = deaths.filter((r) => Math.sign(r.floor) !== Math.sign(near(r.article))).length
+const medRunup = median(deaths.map((r) => r.runup)).toFixed(2)
+
+const belowNear = floors.filter((r) => near(r.article) < 0).length
+const belowClean = floors.filter((r) => r.floor < 0).length
+const share = (n) => Math.round((100 * n) / floors.length)
+const up = floors.filter((r) => r.floor > near(r.article)).length
+const down = floors.filter((r) => r.floor < near(r.article)).length
+
+// The two baselines are measured medians and are stated. The level between them is drawn
+// and not stated: floor.py wrote yr_later as the near baseline times one plus res365, and
+// res365 is stored to two places, so the field is a reconstruction rather than a reading.
+// dataset.json, which never went through that round trip, puts this subject at a different
+// daily count.
+const LEVELS = [
+  { label: 'the window just before he died', value: nearBase, tone: 'near', show: true },
+  { label: 'the same window a year earlier', value: row.clean_base, tone: 'clean', show: true },
+  { label: 'a year after', value: row.yr_later, tone: 'after', show: false },
+]
+const TOP = Math.max(...LEVELS.map((l) => l.value))
+---
+
+<section class="beat">
+  <p class="body">
+    A floor needs a baseline. The obvious one is the window just before the event, and
+    that is the one this started with.
+  </p>
+
+  <p class="body">
+    The days just before an event are not ordinary days for a page.
+  </p>
+
+  <p class="body">
+    {row.article} is the clearest case in the set. He died on {died}, after a month in hospital that February and March.
+  </p>
+
+  <figure class="fig">
+    <div class="levels" role="img" aria-label="Daily views of the article across three windows: just before the event, the same window a year earlier, and a year after">
+      {LEVELS.map((l) => (
+        <div class="level" data-tone={l.tone}>
+          <span class="lab">{l.label}</span>
+          <span class="track"><span class="fill" style={`width:${(100 * l.value) / TOP}%`}></span></span>
+          <span class="val">{l.show ? num(l.value) : ''}</span>
+        </div>
+      ))}
+    </div>
+    <figcaption>
+      Daily views of his article. The window just before he died, the same window a year
+      earlier, and where the article settled a year after.
+    </figcaption>
+  </figure>
+
+  <div class="pair">
+    <div class="read">
+      <p class="stat">{Math.round(Math.abs(near(PHILIP)) * 100)}%</p>
+      <p class="cap">below the window just before he died</p>
+    </div>
+    <div class="read">
+      <p class="stat">{pctOf(row.floor)}%</p>
+      <p class="cap">below the window a year earlier</p>
+    </div>
+  </div>
+
+  <p class="body">
+    His near window ran at {row.runup} times his clean one. Across the {deaths.length} deaths that carry a floor the median is {medRunup} times, so this sits in particular subjects and not across the set.
+  </p>
+
+  <p class="body">
+    {flips} of those {deaths.length} deaths change sign once the baseline is cleaned. The other {deaths.length - flips} hold.
+  </p>
+
+  <p class="body">
+    Across all {floors.length} subjects the near window put {belowNear} of them below baseline, which is {share(belowNear)}%. The clean window puts {belowClean} below, which is {share(belowClean)}%.
+  </p>
+
+  <p class="body">
+    The clean window does not move every subject the same way. {up} read higher against it and {down} read lower.
+  </p>
+
+  <p class="body">
+    Every figure on this page uses the clean window.
+  </p>
+</section>
+
+<style>
+  .beat {
+    padding-bottom: 6rem;
+  }
+
+  .body {
+    max-width: var(--measure);
+    margin: 2rem 0 0;
+    font-size: 1.06rem;
+  }
+
+  .fig {
+    margin: 2.5rem 0 0;
+  }
+
+  figcaption {
+    max-width: var(--measure);
+    margin: 1.2rem 0 0;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+  }
+
+  .levels {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .level {
+    display: grid;
+    grid-template-columns: minmax(0, 15rem) 1fr auto;
+    align-items: center;
+    gap: 0.9rem;
+  }
+
+  .lab {
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+  }
+
+  .track {
+    display: block;
+    height: 18px;
+  }
+
+  .fill {
+    display: block;
+    height: 100%;
+    background: var(--ink);
+  }
+
+  .level[data-tone='near'] .fill {
+    background: var(--ink-soft);
+  }
+
+  .level[data-tone='after'] .fill {
+    background: var(--below);
+  }
+
+  .val {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+
+  .pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem;
+    max-width: 42rem;
+    margin: 3rem 0 0;
+    border-top: 1px solid var(--rule);
+    padding-top: 1.5rem;
+  }
+
+  .stat {
+    font-size: clamp(2.25rem, 7vw, 3.5rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin: 0;
+    color: var(--below);
+  }
+
+  .cap {
+    margin: 0.6rem 0 0;
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 34rem) {
+    .level {
+      grid-template-columns: 1fr auto;
+      gap: 0.35rem 0.9rem;
+    }
+
+    .lab {
+      grid-column: 1 / -1;
+    }
+
+    .pair {
+      grid-template-columns: 1fr;
+      gap: 1.75rem;
+    }
+  }
+</style>

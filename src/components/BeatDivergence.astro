@@ -1,0 +1,264 @@
+---
+import floors from '../../data/probe/floor.json'
+import probe from '../../data/probe/results2.json'
+
+// Beat 4 states published floor figures, so like beat 1 it draws them from floor.json,
+// the file floor.py wrote for exactly this. dataset.json keeps the unrounded quotient and
+// differs from the probe at the second decimal on 19 of the 57 rows, so every figure here
+// is printed to one place, which is a place the two files agree on for each subject named.
+// The copy test holds that agreement and names the two rows where it does not hold.
+const rows = [...floors].sort((a, b) => a.floor - b.floor)
+
+// floor.json stores the floor as a change against the clean baseline. It is published
+// here as a multiple of that baseline instead: the rule sits at 1, the sign change is a
+// crossing of the rule, and a plain log axis carries the whole range with no linear patch
+// around zero. The plan asked for a symmetric log scale, which is what a delta spanning
+// zero needs. A multiple never reaches zero and does not need one.
+const mult = (r) => 1 + r.floor
+const fmt = (r) => mult(r).toFixed(1)
+
+const LO = Math.min(...rows.map(mult)) / 1.15
+const HI = Math.max(...rows.map(mult)) * 1.15
+const SPAN = Math.log10(HI) - Math.log10(LO)
+const X = (v) => ((Math.log10(v) - Math.log10(LO)) / SPAN) * 100
+const RULE = X(1)
+const TICKS = [0.5, 1, 2, 5, 10, 20, 50]
+
+// A subject sitting almost on the rule still gets a visible mark, drawn on its own side.
+const width = (r) => Math.max(0.15, Math.abs(X(mult(r)) - RULE))
+const left = (r) => (r.floor < 0 ? RULE - width(r) : RULE)
+
+const below = rows.filter((r) => r.floor < 0).length
+const above = rows.length - below
+
+const lowest = rows[0]
+const highest = rows.at(-1)
+const lead = rows.find((r) => r.article === 'Elizabeth II')
+const maxDeath = rows
+  .filter((r) => r.class === 'death')
+  .reduce((a, b) => (b.floor > a.floor ? b : a))
+
+// Labelled directly on the mark rather than through a legend: the two ends of the
+// distribution, the highest of the deaths, and the subject this page opened on. Three of
+// the four are picked by the rows, so the label and the mark under it cannot drift apart.
+const LABELLED = [lowest.article, lead.article, maxDeath.article, highest.article]
+
+const fast = probe.reduce((a, b) => (b.t50 < a.t50 ? b : a))
+const slow = probe.reduce((a, b) => (b.t50 > a.t50 ? b : a))
+
+// Pearson r between log peak views and the floor, recomputed from the rows rather than
+// carried across from the spec, so the printed figure is the file's.
+const xs = rows.map((r) => Math.log10(r.peak))
+const ys = rows.map((r) => r.floor)
+const mx = xs.reduce((a, b) => a + b) / xs.length
+const my = ys.reduce((a, b) => a + b) / ys.length
+let cov = 0
+let vx = 0
+let vy = 0
+for (let i = 0; i < xs.length; i++) {
+  cov += (xs[i] - mx) * (ys[i] - my)
+  vx += (xs[i] - mx) ** 2
+  vy += (ys[i] - my) ** 2
+}
+const rText = Math.abs(cov / Math.sqrt(vx * vy)).toFixed(2)
+
+// Spec 11 left the class table open: politics at three subjects and sport at five are too
+// thin to state, and either the event list grows or those classes come out of it. Growing
+// the list is a live network run, so the beat states a class figure only where the class
+// carries THICK subjects. That leaves deaths and scandals. The rest are drawn and unnamed,
+// and the page says so rather than letting a reader take the set for two classes.
+const THICK = 15
+const classes = [...new Set(rows.map((r) => r.class))]
+const countOf = (c) => rows.filter((r) => r.class === c).length
+const thin = classes.filter((c) => countOf(c) < THICK)
+const thinnest = Math.max(...thin.map(countOf))
+
+const overDeaths = rows.filter((r) => r.floor > maxDeath.floor)
+const scandalsOver = overDeaths.filter((r) => r.class === 'scandal').length
+---
+
+<section class="beat">
+  <p class="body">
+    The fall varies, and it varies in one direction. The quickest in the set is half gone in {fast.t50} days and the slowest in {slow.t50} days, and every one of them falls.
+  </p>
+
+  <p class="body">
+    A year on they do not agree on direction. {rows.length} subjects have a clean baseline to be measured against. {below} of them end the year below it and {above} above.
+  </p>
+
+  <figure class="fig">
+    <div class="wrap">
+      <div
+        class="plot"
+        role="img"
+        aria-label="Every subject that carries a clean baseline, a year after its event, as a multiple of that baseline, sorted low to high on a logarithmic scale"
+      >
+        <div class="axis">
+          {TICKS.map((t) => <span class="tick" style={`left:${X(t)}%`}>{t}</span>)}
+        </div>
+        <div class="rows">
+          {TICKS.map((t) => <span class="grid" style={`left:${X(t)}%`}></span>)}
+          <span class="rule" style={`left:${RULE}%`}></span>
+          {rows.map((r) => (
+            <div
+              class:list={['row', { named: LABELLED.includes(r.article) }]}
+              data-mark
+              data-side={r.floor < 0 ? 'below' : 'above'}
+            >
+              <span class="bar" style={`left:${left(r)}%;width:${width(r)}%`}></span>
+              {LABELLED.includes(r.article) && (
+                <span
+                  class="tag"
+                  style={`left:${X(mult(r))}%;transform:translateX(${X(mult(r)) > 50 ? '-100%' : '0'})`}
+                >{r.article} {fmt(r)} times</span>
+              )}
+            </div>
+          ))}
+        </div>
+        <span class="rule-label" style={`left:${RULE}%`}>clean baseline</span>
+      </div>
+    </div>
+    <figcaption>
+      Every subject a year after its event, as a multiple of its own clean baseline. The
+      rule is that baseline. The scale is logarithmic. Sorted, so the colour change is the
+      sign change.
+    </figcaption>
+  </figure>
+
+  <p class="body">
+    A year on, {highest.article}'s article was running at {fmt(highest)} times its clean baseline. {lowest.article}'s was running at {fmt(lowest)} times. {lead.article}, the subject this page opened on, sits at {fmt(lead)} times.
+  </p>
+
+  <p class="body">
+    Spike size does not sort this either. Across the {rows.length} subjects, r = −{rText} between log peak views and the floor.
+  </p>
+
+  <p class="body">
+    {countOf('death')} of the {rows.length} subjects are deaths and {countOf('scandal')} are scandals. The highest floor among the deaths is {maxDeath.article} at {fmt(maxDeath)} times. {overDeaths.length} subjects sit higher, and {scandalsOver} of them are scandals.
+  </p>
+
+  <p class="body">
+    The set holds {classes.length} classes. The other {thin.length} carry {thinnest} subjects or fewer. That is too thin to state, so they are drawn here and not named.
+  </p>
+</section>
+
+<style>
+  .beat {
+    padding-bottom: 6rem;
+  }
+
+  .body {
+    max-width: var(--measure);
+    margin: 2rem 0 0;
+    font-size: 1.06rem;
+  }
+
+  .fig {
+    margin: 2.5rem 0 0;
+  }
+
+  figcaption {
+    max-width: var(--measure);
+    margin: 1.6rem 0 0;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+  }
+
+  .wrap {
+    padding: 0 1.75rem;
+  }
+
+  .plot {
+    position: relative;
+    padding-bottom: 2rem;
+  }
+
+  .axis {
+    position: relative;
+    height: 1.3rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .tick {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rows {
+    position: relative;
+    padding-top: 0.7rem;
+  }
+
+  .grid {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--rule);
+  }
+
+  .rule {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--ink);
+  }
+
+  .row {
+    position: relative;
+    height: 8px;
+    margin-bottom: 5px;
+  }
+
+  .row.named {
+    margin-top: 1.6rem;
+  }
+
+  .bar {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: var(--above);
+  }
+
+  .row[data-side='below'] .bar {
+    background: var(--below);
+  }
+
+  .tag {
+    position: absolute;
+    bottom: 100%;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    font-size: 0.82rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rule-label {
+    position: absolute;
+    top: 100%;
+    margin-top: 0.5rem;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 34rem) {
+    .wrap {
+      padding: 0;
+    }
+
+    .tag,
+    .tick,
+    .rule-label {
+      font-size: 0.72rem;
+    }
+  }
+</style>
