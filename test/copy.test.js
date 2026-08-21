@@ -6,7 +6,9 @@ import BeatBand from '../src/components/BeatBand.astro'
 import BeatModel from '../src/components/BeatModel.astro'
 import BeatDivergence from '../src/components/BeatDivergence.astro'
 import BeatCorrection from '../src/components/BeatCorrection.astro'
+import CodaLookup from '../src/components/CodaLookup.astro'
 import { fitDecay } from '../src/lib/metrics.js'
+import { API_START } from '../src/lib/classify.js'
 
 // Beat 1 states published numbers, so it is gated against the probe output rather than
 // against dataset.json. floor.py's own header says these are "the numbers beat 1 of the
@@ -31,8 +33,13 @@ const SOURCES = [
   'src/components/BeatModel.astro',
   'src/components/BeatDivergence.astro',
   'src/components/BeatCorrection.astro',
+  'src/components/CodaLookup.astro',
   'src/layouts/Base.astro',
   'src/pages/index.astro',
+  // Not a component. The coda's user-facing strings live here rather than in the
+  // template, since the state they answer is only known after the fetch returns, so the
+  // register and the em-dash rule have to reach this file as well.
+  'src/scripts/coda.js',
 ]
 
 // Copy is what a reader sees, so scoped styles and the component's own client script are
@@ -49,8 +56,10 @@ let bandText
 let modelText
 let divText
 let corrText
+let codaText
 let divHtml
 let corrHtml
+let codaHtml
 let named
 beforeAll(async () => {
   const container = await AstroContainer.create()
@@ -59,8 +68,10 @@ beforeAll(async () => {
   modelText = strip(await container.renderToString(BeatModel))
   divHtml = await container.renderToString(BeatDivergence)
   corrHtml = await container.renderToString(BeatCorrection)
+  codaHtml = await container.renderToString(CodaLookup)
   divText = strip(divHtml)
   corrText = strip(corrHtml)
+  codaText = strip(codaHtml)
   named = floors.filter((r) => text.includes(r.article))
 })
 
@@ -163,6 +174,7 @@ describe('copy discipline', () => {
     expect(modelText).not.toMatch(banned)
     expect(divText).not.toMatch(banned)
     expect(corrText).not.toMatch(banned)
+    expect(codaText).not.toMatch(banned)
   })
 
   it('uses no em dashes', () => {
@@ -172,6 +184,7 @@ describe('copy discipline', () => {
     expect(modelText).not.toContain('—')
     expect(divText).not.toContain('—')
     expect(corrText).not.toContain('—')
+    expect(codaText).not.toContain('—')
   })
 })
 
@@ -981,5 +994,75 @@ describe('beat 4 gates go red on a planted defect', () => {
     const rows = clone().map((r) => ({ ...r, floor: Math.log10(r.peak) }))
     const r = corr(rows.map((x) => Math.log10(x.peak)), rows.map((x) => x.floor))
     expect(Math.abs(r)).not.toBeLessThan(0.15)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// The coda.
+// ---------------------------------------------------------------------------
+
+describe('the coda states no figure of its own', () => {
+  it('carries no number in its own copy, so every number a reader sees was just measured', () => {
+    // The binding rule is that no number appears in copy without a row behind it. The
+    // coda has no rows: it answers a query the set never covered. It resolves that by
+    // printing nothing of its own, which is stricter than a whitelist and cannot drift.
+    expect(codaText.match(/\d/g) ?? []).toEqual([])
+  })
+
+  it('the no-figure gate fails on a planted figure', () => {
+    const planted = codaText.replace('the same measurements', 'the same 6 measurements')
+    expect(planted.match(/\d/g) ?? []).not.toEqual([])
+  })
+
+  it('floors the date input at the first day of data, from the constant not from a literal', () => {
+    const src = readFileSync('src/components/CodaLookup.astro', 'utf8')
+    expect(src).toContain('min={API_START}')
+    expect(src).not.toContain(API_START)
+    expect(codaHtml).toContain(`min="${API_START}"`)
+  })
+
+  it('asks for both an article and a date, which a spike cannot be read off alone', () => {
+    // Many articles carry several spikes, so the event date is an input and never a guess.
+    expect(codaHtml).toMatch(/id="coda-article"[^>]*type="text"/)
+    expect(codaHtml).toMatch(/id="coda-date"[^>]*type="date"/)
+    expect(codaHtml).toContain('for="coda-article"')
+    expect(codaHtml).toContain('for="coda-date"')
+    expect(codaText).toContain('Article title')
+    expect(codaText).toContain('Event date')
+  })
+
+  it('keeps a live region for the message, so a failure is never a silent empty chart', () => {
+    expect(codaHtml).toMatch(/id="coda-status"[^>]*aria-live="polite"/)
+    expect(codaHtml).toMatch(/id="coda-metrics"[^>]*hidden/)
+  })
+
+  it('draws the reader onto the same single-ink band beat 2 draws', () => {
+    const src = readFileSync('src/components/CodaLookup.astro', 'utf8')
+    const beat2 = readFileSync('src/components/BeatBand.astro', 'utf8')
+    const inkOf = (text) => (text.match(/ink: '([\d, ]+)'/) ?? [])[1]
+    expect(inkOf(src)).toBe(inkOf(beat2))
+    expect(src).toContain('highlight')
+  })
+
+  it('re-syncs from the canvas box and takes no reveal a phone cannot fire', () => {
+    for (const f of ['src/components/CodaLookup.astro', 'src/scripts/coda.js']) {
+      const src = readFileSync(f, 'utf8')
+      expect(src, f).not.toContain('pointermove')
+      expect(src, f).not.toContain('pointerleave')
+      expect(src, f).not.toMatch(/addEventListener\(\s*'resize'/)
+    }
+    expect(readFileSync('src/components/CodaLookup.astro', 'utf8')).toContain('ResizeObserver')
+  })
+
+  it('joins no two words where the template breaks a line beside an expression', () => {
+    expect(codaText).not.toMatch(/[A-Za-z]\d|\d[A-Za-z]/)
+    expect(codaText).not.toMatch(/\.[A-Za-z]/)
+    expect(codaText).not.toMatch(/[A-Za-z],\d/)
+  })
+
+  it('is wired into the page after the beat it tests', () => {
+    const page = readFileSync('src/pages/index.astro', 'utf8')
+    expect(page).toContain('<CodaLookup />')
+    expect(page.indexOf('<CodaLookup />')).toBeGreaterThan(page.indexOf('<BeatCorrection />'))
   })
 })
