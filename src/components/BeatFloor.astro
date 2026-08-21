@@ -1,0 +1,125 @@
+---
+import floors from '../../data/probe/floor.json'
+import dataset from '../data/dataset.json'
+
+// Published figures come from floor.json, which floor.py wrote for this beat. dataset.json
+// keeps the unrounded quotient and differs from the probe at the printed digit on three of
+// the four subjects named here, so it is used only for the count of events measured.
+const pick = (name) => {
+  const row = floors.find((r) => r.article === name)
+  if (!row) throw new Error(`no floor.json row for ${name}`)
+  return row
+}
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December']
+const longDate = (iso) => {
+  const [y, m, d] = iso.split('-')
+  return `${Number(d)} ${MONTHS[Number(m) - 1]} ${y}`
+}
+
+const num = (n) => n.toLocaleString('en-US')
+
+// floor.json keeps three decimals, so three of its rows land on an exact half at the
+// printed digit and Elizabeth II is one of them (-0.305 -> 30.5%). Python wrote the file
+// and renders such a tie to the even neighbour, JavaScript's Math.round would render it
+// away from zero, and the two published percentages differ. The tie goes to even, which is
+// also the digit the library's unrounded quotient for her supports.
+const roundHalfEven = (x) => {
+  const down = Math.trunc(x)
+  const frac = x - down
+  if (frac !== 0.5) return Math.round(x)
+  return down % 2 === 0 ? down : down + 1
+}
+const pct = (row) => `${roundHalfEven(Math.abs(row.floor) * 100)}%`
+
+const lead = pick('Elizabeth II')
+const others = ['Betty White', 'Kirk Douglas', 'Prince Philip, Duke of Edinburgh'].map(pick)
+
+const eligible = floors.length
+const belowBaseline = floors.filter((r) => r.floor < 0).length
+const measured = dataset.events.length
+---
+
+<section class="beat">
+  <p class="stat">{num(lead.peak)}</p>
+  <p class="cap">
+    views of the Elizabeth II article on {longDate(lead.event)}, the day she died.
+  </p>
+
+  <p class="body">
+    A year before she died a typical day drew {num(lead.clean_base)} views of that article.
+    A year after, it was running {pct(lead)} below that.
+  </p>
+
+  <p class="body">The same measurement, three more subjects.</p>
+
+  <ul class="list">
+    {others.map((r) => (
+      <li>
+        <span class="who">{r.article}</span>
+        <span class="val">{pct(r)} below</span>
+      </li>
+    ))}
+  </ul>
+
+  <p class="body">
+    {eligible} of the {measured} events measured here can be compared against a clean
+    baseline from a year before the event. {belowBaseline} of them end the year below it.
+  </p>
+</section>
+
+<style>
+  .beat {
+    padding-bottom: 6rem;
+  }
+
+  .stat {
+    font-size: clamp(2.75rem, 9vw, 4.75rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin: 0;
+  }
+
+  .cap {
+    max-width: var(--measure);
+    margin: 0.75rem 0 0;
+    font-size: 1.05rem;
+    color: var(--ink-soft);
+  }
+
+  .body {
+    max-width: var(--measure);
+    margin: 2rem 0 0;
+    font-size: 1.06rem;
+  }
+
+  .list {
+    list-style: none;
+    max-width: var(--measure);
+    margin: 1.25rem 0 0;
+    padding: 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: baseline;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .who {
+    font-weight: 500;
+  }
+
+  .val {
+    color: var(--below);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+</style>

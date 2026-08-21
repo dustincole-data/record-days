@@ -1,0 +1,63 @@
+@font-face {
+  font-family: Archivo;
+  src: url('/fonts/archivo-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: Archivo;
+  src: url('/fonts/archivo-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: Archivo;
+  src: url('/fonts/archivo-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+
+:root {
+  --ink: #16151a;
+  --ink-soft: #55525f;
+  --ground: #f7f5f1;
+  --rule: #ddd8d0;
+  --below: #b8452f;
+  --above: #2f6b7a;
+  --measure: 34rem;
+  font-family: Archivo, system-ui, sans-serif;
+  font-size: 17px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.page {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 6rem;
+}
+
+.masthead {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1.25rem;
+  margin-bottom: 4.5rem;
+}
+
+.masthead h1 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.masthead p {
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  margin: 0.25rem 0 0;
+}
