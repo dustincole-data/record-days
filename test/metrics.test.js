@@ -114,3 +114,38 @@ describe('fitDecay', () => {
     expect(f.powAlpha).toBeNull()
   })
 })
+
+import { floor, CLEAN_BASE_FROM, CLEAN_BASE_TO } from '../src/lib/metrics.js'
+
+describe('floor', () => {
+  it('reports a positive fraction when the subject ends above its clean baseline', () => {
+    const series = new Map()
+    for (let d = 335; d <= 365; d++) series.set(d, 1340)
+    expect(floor(series, 0, 1000)).toBeCloseTo(0.34, 6)
+  })
+  it('reports a negative fraction when the subject ends below its clean baseline', () => {
+    const series = new Map()
+    for (let d = 335; d <= 365; d++) series.set(d, 700)
+    expect(floor(series, 0, 1000)).toBeCloseTo(-0.30, 6)
+  })
+  it('measures the window relative to the peak, not the event', () => {
+    // a ramp running well past both ends of the window, so a window anchored to
+    // the event, or one of the wrong length, lands on a different median
+    const series = new Map()
+    for (let d = 300; d <= 420; d++) series.set(d, d * 10)
+    // peak on day 5, so the window is days 340..370, whose median is day 355 at 3550
+    expect(floor(series, 5, 5000)).toBeCloseTo(-0.29, 6)
+  })
+  it('returns null when the year-later window has no data', () => {
+    expect(floor(new Map([[1, 100]]), 0, 1000)).toBeNull()
+  })
+  it('returns null for a non-positive baseline rather than dividing by zero', () => {
+    const series = new Map()
+    for (let d = 335; d <= 365; d++) series.set(d, 500)
+    expect(floor(series, 0, 0)).toBeNull()
+  })
+  it('exposes the clean baseline window as named constants', () => {
+    expect(CLEAN_BASE_FROM).toBe(-455)
+    expect(CLEAN_BASE_TO).toBe(-270)
+  })
+})

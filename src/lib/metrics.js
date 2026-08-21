@@ -82,3 +82,18 @@ export function fitDecay(series, peakDay, base) {
     powR2: pow ? pow.r2 : null,
   }
 }
+
+export const CLEAN_BASE_FROM = -455
+export const CLEAN_BASE_TO = -270
+export const FLOOR_FROM = 335
+export const FLOOR_TO = 365
+
+export function floor(series, peakDay, cleanBase) {
+  if (!(cleanBase > 0)) return null
+  const vals = []
+  for (let d = peakDay + FLOOR_FROM; d <= peakDay + FLOOR_TO; d++) {
+    if (series.has(d)) vals.push(series.get(d))
+  }
+  if (vals.length === 0) return null
+  return (median(vals) - cleanBase) / cleanBase
+}
