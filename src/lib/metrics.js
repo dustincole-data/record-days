@@ -40,3 +40,45 @@ export function crossing(series, peakDay, peakExcess, base, frac) {
   }
   return null
 }
+
+export function linreg(xs, ys) {
+  const n = xs.length
+  if (n < 4) return null
+  const mx = xs.reduce((a, b) => a + b, 0) / n
+  const my = ys.reduce((a, b) => a + b, 0) / n
+  let sxx = 0, sxy = 0
+  for (let i = 0; i < n; i++) {
+    sxx += (xs[i] - mx) ** 2
+    sxy += (xs[i] - mx) * (ys[i] - my)
+  }
+  if (sxx === 0) return null
+  const slope = sxy / sxx
+  const intercept = my - slope * mx
+  let ssTot = 0, ssRes = 0
+  for (let i = 0; i < n; i++) {
+    ssTot += (ys[i] - my) ** 2
+    ssRes += (ys[i] - (intercept + slope * xs[i])) ** 2
+  }
+  return { slope, intercept, r2: ssTot > 0 ? 1 - ssRes / ssTot : null }
+}
+
+export function fitDecay(series, peakDay, base) {
+  const t = [], logT = [], logV = []
+  for (let i = 1; i <= 30; i++) {
+    const d = peakDay + i
+    if (!series.has(d)) continue
+    const excess = series.get(d) - base
+    if (excess <= 0) continue
+    t.push(i)
+    logT.push(Math.log(i))
+    logV.push(Math.log(excess))
+  }
+  const exp = linreg(t, logV)
+  const pow = linreg(logT, logV)
+  return {
+    expHalfLife: exp && exp.slope < 0 ? Math.log(2) / -exp.slope : null,
+    expR2: exp ? exp.r2 : null,
+    powAlpha: pow ? -pow.slope : null,
+    powR2: pow ? pow.r2 : null,
+  }
+}

@@ -66,3 +66,51 @@ describe('crossing', () => {
     expect(crossing(series, 0, 1000, 0, 0.5)).toBeNull()
   })
 })
+
+import { linreg, fitDecay } from '../src/lib/metrics.js'
+
+describe('linreg', () => {
+  it('recovers slope and intercept of a perfect line with r2 of 1', () => {
+    const r = linreg([1, 2, 3, 4], [3, 5, 7, 9])
+    expect(r.slope).toBeCloseTo(2, 10)
+    expect(r.intercept).toBeCloseTo(1, 10)
+    expect(r.r2).toBeCloseTo(1, 10)
+  })
+  it('returns null when there are too few points to fit', () => {
+    expect(linreg([1, 2], [1, 2])).toBeNull()
+  })
+  it('returns null when every x is identical', () => {
+    expect(linreg([5, 5, 5, 5], [1, 2, 3, 4])).toBeNull()
+  })
+})
+
+describe('fitDecay', () => {
+  it('recovers the half-life of clean exponential decay', () => {
+    // excess = 1000 * 0.5^(t/3)  -> half-life exactly 3 days
+    const series = new Map([[0, 1000]])
+    for (let t = 1; t <= 30; t++) series.set(t, 1000 * Math.pow(0.5, t / 3))
+    const f = fitDecay(series, 0, 0)
+    expect(f.expHalfLife).toBeCloseTo(3, 6)
+    expect(f.expR2).toBeCloseTo(1, 6)
+  })
+  it('recovers the exponent of a clean power law', () => {
+    // excess = 1000 * t^-1.5
+    const series = new Map([[0, 1000]])
+    for (let t = 1; t <= 30; t++) series.set(t, 1000 * Math.pow(t, -1.5))
+    const f = fitDecay(series, 0, 0)
+    expect(f.powAlpha).toBeCloseTo(1.5, 6)
+    expect(f.powR2).toBeCloseTo(1, 6)
+  })
+  it('skips days where excess is zero or negative, since log is undefined', () => {
+    const series = new Map([[0, 1000]])
+    for (let t = 1; t <= 30; t++) series.set(t, t < 10 ? 500 - t : 0)
+    const f = fitDecay(series, 0, 0)
+    expect(f.expR2).not.toBeNull()
+  })
+  it('returns nulls when fewer than four usable days remain', () => {
+    const series = new Map([[0, 1000], [1, 500], [2, 0], [3, 0]])
+    const f = fitDecay(series, 0, 0)
+    expect(f.expHalfLife).toBeNull()
+    expect(f.powAlpha).toBeNull()
+  })
+})
