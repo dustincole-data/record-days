@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs'
 import { experimental_AstroContainer as AstroContainer } from 'astro/container'
 import BeatFloor from '../src/components/BeatFloor.astro'
 import BeatBand from '../src/components/BeatBand.astro'
+import BeatModel from '../src/components/BeatModel.astro'
+import { fitDecay } from '../src/lib/metrics.js'
 
 // Beat 1 states published numbers, so it is gated against the probe output rather than
 // against dataset.json. floor.py's own header says these are "the numbers beat 1 of the
@@ -24,6 +26,7 @@ const pctOf = (floor) => roundHalfEven(Math.abs(floor) * 100)
 const SOURCES = [
   'src/components/BeatBand.astro',
   'src/components/BeatFloor.astro',
+  'src/components/BeatModel.astro',
   'src/layouts/Base.astro',
   'src/pages/index.astro',
 ]
@@ -39,11 +42,13 @@ const strip = (html) =>
 
 let text
 let bandText
+let modelText
 let named
 beforeAll(async () => {
   const container = await AstroContainer.create()
   text = strip(await container.renderToString(BeatFloor))
   bandText = strip(await container.renderToString(BeatBand))
+  modelText = strip(await container.renderToString(BeatModel))
   named = floors.filter((r) => text.includes(r.article))
 })
 
@@ -143,12 +148,14 @@ describe('copy discipline', () => {
     for (const f of SOURCES) expect(readFileSync(f, 'utf8'), f).not.toMatch(banned)
     expect(text).not.toMatch(banned)
     expect(bandText).not.toMatch(banned)
+    expect(modelText).not.toMatch(banned)
   })
 
   it('uses no em dashes', () => {
     for (const f of SOURCES) expect(readFileSync(f, 'utf8'), f).not.toContain('—')
     expect(text).not.toContain('—')
     expect(bandText).not.toContain('—')
+    expect(modelText).not.toContain('—')
   })
 })
 
@@ -385,5 +392,115 @@ describe('beat 2 states the pair the way the drawn curves read', () => {
     // copy states the rate and names the level as what separates them.
     expect(small.curve[30] / big.curve[30]).toBeGreaterThan(3)
     expect(bandText).toContain('the level, not the rate')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Beat 3, the model.
+// ---------------------------------------------------------------------------
+
+describe('beat 3 claims trace to the data', () => {
+  const dataset = JSON.parse(readFileSync('src/data/dataset.json', 'utf8'))
+  const fitted = dataset.events.filter((e) => e.powR2 !== null && e.expR2 !== null)
+  const wins = fitted.filter((e) => e.powR2 > e.expR2).length
+  // Reimplemented rather than imported from src/lib/metrics.js, so a change to the
+  // library's median cannot move the printed figure and the assertion together.
+  const med = (nums) => {
+    const s = [...nums].sort((a, b) => a - b)
+    const mid = Math.floor(s.length / 2)
+    return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2
+  }
+  const alpha = med(fitted.map((e) => e.powAlpha))
+  // Elapsed time to halve from day t under V = C t^-alpha: t * 2^(1/alpha) is where the
+  // clock lands, so the duration is that less t. stats.py printed the landing point for
+  // day one (1.7) and the duration for day thirty (21.5) and the spec carried both across
+  // as though they were the same quantity. The beat states one quantity twice.
+  const halveFrom = (t) => (t * (2 ** (1 / alpha) - 1)).toFixed(1)
+
+  it('a power law beats an exponential on a clear majority of the events', () => {
+    expect(fitted).toHaveLength(dataset.events.length)
+    expect(wins).toBeGreaterThan(fitted.length / 2)
+    expect(wins).toBe(57)
+    // The same count in the file the figure is published from. If Task 7's parity gate
+    // was bypassed the two disagree here before the copy can state either.
+    expect(probe.filter((r) => r.pow_r2 > r.exp_r2).length).toBe(wins)
+    expect(probe.length).toBe(fitted.length)
+  })
+
+  it('fits a decay, which is what the growing halving time rests on', () => {
+    // The growth is a property of the form rather than of this data: t * (2^(1/alpha) - 1)
+    // is linear in t for any positive exponent. What the data decides is which form fits,
+    // and that every fitted exponent is a fall rather than a rise.
+    expect(alpha).toBeGreaterThan(0)
+    expect(fitted.filter((e) => e.powAlpha > 0)).toHaveLength(fitted.length)
+    expect(Number(halveFrom(30))).toBeGreaterThan(Number(halveFrom(1)))
+  })
+
+  it('states halving times that do not depend on which file the exponent came from', () => {
+    // dataset.json keeps the unrounded exponent, results2.json a 2dp copy, and the two
+    // medians differ at the third place. Both land on the same printed digit here. The
+    // upper of the two middle values does not: it prints 21.4 where a median prints 21.5.
+    const probeAlpha = med(probe.map((r) => r.pow_a))
+    const fromProbe = (t) => (t * (2 ** (1 / probeAlpha) - 1)).toFixed(1)
+    expect(fromProbe(1)).toBe(halveFrom(1))
+    expect(fromProbe(30)).toBe(halveFrom(30))
+    // The exponent itself is not stable at two places across the two files, which is why
+    // the beat states the halving times and never prints the exponent.
+    expect(alpha.toFixed(2)).toBe('1.28')
+    expect(probeAlpha.toFixed(2)).toBe('1.29')
+  })
+
+  it('fits only the window the beat says it fits, day one to day thirty', () => {
+    // The beat states the fit runs from the day after the peak to day thirty, then
+    // measures a halving time at each end of it. A fit that reached past day thirty would
+    // put the second measurement inside the window rather than at its edge, and a fit that
+    // stopped short would put it outside the data.
+    const clean = new Map()
+    for (let d = 1; d <= 40; d++) clean.set(d, Math.round(100000 * d ** -1.3))
+    const alphaOf = (series) => fitDecay(series, 0, 0).powAlpha
+    const base = alphaOf(clean)
+
+    const past = new Map(clean)
+    for (let d = 31; d <= 40; d++) past.set(d, 999999)
+    expect(alphaOf(past)).toBe(base)
+
+    const edge = new Map(clean)
+    edge.set(30, 999999)
+    expect(alphaOf(edge)).not.toBe(base)
+  })
+
+  it('prints the counts and the halving times the dataset holds', () => {
+    expect(modelText).toContain(`${wins} of ${fitted.length} events`)
+    expect(modelText).toContain(`${halveFrom(1)} days`)
+    expect(modelText).toContain(`${halveFrom(30)} days`)
+  })
+
+  it('every number in the beat is a count of rows or a figure recomputed from them', () => {
+    // Same rule as beats 1 and 2. Beat 3 prints no field of any row, only quantities
+    // derived from all of them, so the allowed set is built by recomputing each one.
+    const allowed = new Set()
+    const allow = (n) => allowed.add(String(Number(n)))
+    allow(wins)
+    allow(fitted.length)
+    allow(halveFrom(1))
+    allow(halveFrom(30))
+
+    const untraceable = (modelText.match(/\d[\d,]*(?:\.\d+)?/g) ?? [])
+      .map((n) => String(Number(n.replace(/,/g, ''))))
+      .filter((n) => !allowed.has(n))
+    expect(untraceable).toEqual([])
+  })
+
+  it('joins no two words where the template breaks a line beside an expression', () => {
+    expect(modelText).not.toMatch(/[A-Za-z]\d|\d[A-Za-z]/)
+    expect(modelText).not.toMatch(/\.[A-Za-z]/)
+    expect(modelText).not.toMatch(/[A-Za-z],\d/)
+  })
+
+  it('claims no half-life for a fall it has just shown is not one', () => {
+    // The page keeps the title. The beat has to take the name back explicitly, or the
+    // masthead states a process the data rejects and nothing on the page says otherwise.
+    expect(modelText).toMatch(/no such number/)
+    expect(readFileSync('src/pages/index.astro', 'utf8')).toContain('<BeatModel />')
   })
 })

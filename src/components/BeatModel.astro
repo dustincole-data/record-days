@@ -1,0 +1,54 @@
+---
+import dataset from '../data/dataset.json'
+import { median } from '../lib/metrics.js'
+
+// Beat 3 prints no field of any row. Every figure here is derived from all of them, so it
+// is taken from dataset.json, which keeps the unrounded fit, and the copy test checks the
+// printed digit against results2.json as well. The two agree at one decimal place.
+const fitted = dataset.events.filter((e) => e.powR2 !== null && e.expR2 !== null)
+const powWins = fitted.filter((e) => e.powR2 > e.expR2).length
+
+// The median of an even-length set is the mean of the two middle values. Reaching for the
+// upper of the two instead moves the exponent from 1.283 to 1.285 and the day-thirty
+// figure from 21.5 to 21.4, which is a rounding rule choosing a published digit.
+const alpha = median(fitted.map((e) => e.powAlpha))
+
+// Under V = C t^-alpha, a curve at day t is at half that value at t * 2^(1/alpha). That is
+// where the clock lands, not how long it took, and the elapsed time is that less t. Both
+// figures below are elapsed, so the two are the same quantity measured at two starts.
+const halveFrom = (t) => (t * (2 ** (1 / alpha) - 1)).toFixed(1)
+---
+
+<section class="beat">
+  <p class="body">
+    This page is called Attention Half-Life. The data does not show a half-life.
+  </p>
+
+  <p class="body">
+    A power law fits the fall better than an exponential on {powWins} of {fitted.length} events.
+    The fit runs from the day after the peak to day thirty. Under a power law the halving
+    time is not constant. It grows.
+  </p>
+
+  <p class="body">
+    At the median exponent the same curve takes {halveFrom(1)} days to halve when measured
+    from day one, and {halveFrom(30)} days when measured from day thirty.
+  </p>
+
+  <p class="body">
+    A half-life is one number that holds wherever you start counting. This fall has no such
+    number.
+  </p>
+</section>
+
+<style>
+  .beat {
+    padding-bottom: 6rem;
+  }
+
+  .body {
+    max-width: var(--measure);
+    margin: 2rem 0 0;
+    font-size: 1.06rem;
+  }
+</style>
