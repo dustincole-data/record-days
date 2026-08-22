@@ -121,5 +121,9 @@ export async function lookup(article, eventDate, fetchImpl = (...args) => fetch(
       floorReason,
     },
     curve: curve(series, peak.day, nearBase, peakExcess),
+    // The daily views themselves, from the peak forward, which is what the ring is drawn
+    // against. The normalised curve above is a share of the lift and is clipped at one, so
+    // it cannot carry a level. A day the API did not return is null and is not drawn.
+    levels: Array.from({ length: 61 }, (_, i) => series.get(peak.day + i) ?? null),
   }
 }

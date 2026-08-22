@@ -2,12 +2,20 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { experimental_AstroContainer as AstroContainer } from 'astro/container'
 import BeatFloor from '../src/components/BeatFloor.astro'
-import BeatBand from '../src/components/BeatBand.astro'
+import BeatFall from '../src/components/BeatFall.astro'
 import BeatModel from '../src/components/BeatModel.astro'
 import BeatDivergence from '../src/components/BeatDivergence.astro'
 import BeatCorrection from '../src/components/BeatCorrection.astro'
 import CodaLookup from '../src/components/CodaLookup.astro'
 import { fitDecay } from '../src/lib/metrics.js'
+import {
+  floorColour,
+  floorScale,
+  orbitSubjects,
+  ratioAt,
+  strokeWidths,
+} from '../src/scripts/orbit.js'
+import { ladderAxes, LADDER_WIDTHS } from '../src/scripts/ladder.js'
 import { API_START } from '../src/lib/classify.js'
 
 // Beat 1 states published numbers, so it is gated against the probe output rather than
@@ -28,8 +36,8 @@ const roundHalfEven = (x) => {
 const pctOf = (floor) => roundHalfEven(Math.abs(floor) * 100)
 
 const SOURCES = [
-  'src/components/BeatBand.astro',
   'src/components/BeatFloor.astro',
+  'src/components/BeatFall.astro',
   'src/components/BeatModel.astro',
   'src/components/BeatDivergence.astro',
   'src/components/BeatCorrection.astro',
@@ -40,6 +48,10 @@ const SOURCES = [
   // template, since the state they answer is only known after the fetch returns, so the
   // register and the em-dash rule have to reach this file as well.
   'src/scripts/coda.js',
+  // The two renderers draw label text onto the canvas, so reader-facing strings live in
+  // them too and the register has to cover them.
+  'src/scripts/orbit.js',
+  'src/scripts/ladder.js',
 ]
 
 // Copy is what a reader sees, so scoped styles and the component's own client script are
@@ -52,7 +64,7 @@ const strip = (html) =>
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
 
 let text
-let bandText
+let fallText
 let modelText
 let divText
 let corrText
@@ -64,7 +76,7 @@ let named
 beforeAll(async () => {
   const container = await AstroContainer.create()
   text = strip(await container.renderToString(BeatFloor))
-  bandText = strip(await container.renderToString(BeatBand))
+  fallText = strip(await container.renderToString(BeatFall))
   modelText = strip(await container.renderToString(BeatModel))
   divHtml = await container.renderToString(BeatDivergence)
   corrHtml = await container.renderToString(BeatCorrection)
@@ -170,7 +182,7 @@ describe('copy discipline', () => {
   it('uses no causal or memory language about the floor', () => {
     for (const f of SOURCES) expect(readFileSync(f, 'utf8'), f).not.toMatch(banned)
     expect(text).not.toMatch(banned)
-    expect(bandText).not.toMatch(banned)
+    expect(fallText).not.toMatch(banned)
     expect(modelText).not.toMatch(banned)
     expect(divText).not.toMatch(banned)
     expect(corrText).not.toMatch(banned)
@@ -180,16 +192,15 @@ describe('copy discipline', () => {
   it('uses no em dashes', () => {
     for (const f of SOURCES) expect(readFileSync(f, 'utf8'), f).not.toContain('—')
     expect(text).not.toContain('—')
-    expect(bandText).not.toContain('—')
+    expect(fallText).not.toContain('—')
     expect(modelText).not.toContain('—')
     expect(divText).not.toContain('—')
     expect(corrText).not.toContain('—')
     expect(codaText).not.toContain('—')
   })
 })
-
 // ---------------------------------------------------------------------------
-// Beat 2, the band.
+// Beat 2, the fall.
 // ---------------------------------------------------------------------------
 
 const corr = (xs, ys) => {
@@ -206,221 +217,358 @@ const corr = (xs, ys) => {
   return num / Math.sqrt(dx * dy)
 }
 
-describe('band renderer safety rules', () => {
-  const src = readFileSync('src/scripts/band.js', 'utf8')
-  const wiring = readFileSync('src/components/BeatBand.astro', 'utf8')
+// Reimplemented rather than imported from src/lib/metrics.js, so a change to the library
+// cannot move a printed figure and its assertion together. Ties share the average of the
+// ranks they span, which is what a rank correlation is defined on and what the ten tied
+// exponents in the set need.
+const rankOf = (values) => {
+  const order = values.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0])
+  const out = new Array(values.length)
+  let i = 0
+  while (i < order.length) {
+    let j = i
+    while (j + 1 < order.length && order[j + 1][0] === order[i][0]) j++
+    const shared = (i + j) / 2 + 1
+    for (let k = i; k <= j; k++) out[order[k][1]] = shared
+    i = j + 1
+  }
+  return out
+}
+const rho = (xs, ys) => corr(rankOf(xs), rankOf(ys))
+const signed = (v) => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(2)}`
 
-  it('never uses multiply blending, which compounds to black on light', () => {
-    expect(src).not.toContain("'multiply'")
+const probeOfArticle = (name) => probe.find((r) => r.article === name)
+// The 57 that carry a floor, joined to the exponent the same rows were fitted with.
+const fallRows = floors.map((r) => ({
+  article: r.article,
+  peak: r.peak,
+  floor: r.floor,
+  exponent: probeOfArticle(r.article).pow_a,
+}))
+const logPeak88 = probe.map((r) => Math.log10(r.peak))
+const t50s88 = probe.map((r) => r.t50)
+const exps88 = probe.map((r) => r.pow_a)
+const logPeak57 = fallRows.map((r) => Math.log10(r.peak))
+const exponents57 = fallRows.map((r) => r.exponent)
+const floors57 = fallRows.map((r) => r.floor)
+
+describe('beat 2 takes back the measurement the page used to answer this with', () => {
+  it('reproduces the figure the old reading rested on, days to half against peak size', () => {
+    // The old claim was that peak size has no relationship to how fast the curve falls, on
+    // a straight-line correlation of −0.21 between log peak views and days to half. The
+    // figure is real. What it measures is one crossing, not the rate.
+    expect(corr(logPeak88, t50s88).toFixed(2)).toBe('-0.21')
+    expect(fallText).toContain(`r = ${signed(corr(logPeak88, t50s88))}`)
   })
 
-  it('colours curves by peak magnitude, which is what makes beat 2 honest', () => {
-    expect(src).toContain('magnitudeColour')
-    expect(src).toContain('Math.log10(e.peak)')
+  it('finds the fall does track the spike once the rate is the fitted exponent', () => {
+    // The exponent of the power law beat 3 fits is the rate of the whole fall, and against
+    // it the relationship is not small on either measure. The old beat's own threshold for
+    // calling a pair unrelated was 0.3.
+    const r = corr(logPeak88, exps88)
+    const p = rho(logPeak88, exps88)
+    expect(r).toBeGreaterThan(0.5)
+    expect(p).toBeGreaterThan(0.5)
+    expect(fallText).toContain(`r = ${signed(r)}`)
+    expect(fallText).toContain(`ρ = ${signed(p)}`)
   })
 
-  it('preserves the drawing buffer so screenshots are possible', () => {
-    const contexts = src.match(/getContext\(/g) ?? []
-    const preserved = src.match(/preserveDrawingBuffer: true/g) ?? []
-    expect(contexts.length).toBeGreaterThan(0)
-    expect(preserved.length).toBe(contexts.length)
-  })
-
-  it('never encodes anything in stroke width, which is clamped to 1 on many devices', () => {
-    const widths = src.match(/lineWidth\s*=\s*[^\n]+/g)
-    expect(widths.length).toBeGreaterThan(0)
-    expect([...new Set(widths)]).toEqual(['lineWidth = 1'])
-  })
-
-  it('re-syncs from the canvas box, never from a window resize event', () => {
-    expect(wiring).toContain('ResizeObserver')
-    expect(wiring).not.toMatch(/addEventListener\(\s*'resize'/)
-    expect(src).not.toMatch(/addEventListener\(\s*'resize'/)
-  })
-})
-
-describe('beat 2 claims trace to the data', () => {
-  const dataset = JSON.parse(readFileSync('src/data/dataset.json', 'utf8'))
-  const src = readFileSync('src/scripts/band.js', 'utf8')
-  const DAYS = 30
-
-  it('peak views span more than three orders of magnitude', () => {
-    // The plan called this four orders. The set spans 2,782 to 10,905,053, which is 3.6,
-    // so the assertion states what the file holds and the copy states neither.
-    const peaks = dataset.events.map((e) => e.peak)
-    expect(Math.max(...peaks) / Math.min(...peaks)).toBeGreaterThan(1000)
-  })
-
-  it('t50 and peak magnitude are effectively uncorrelated', () => {
-    const rows = dataset.events.filter((e) => e.t50 !== null)
-    const r = corr(rows.map((e) => Math.log10(e.peak)), rows.map((e) => e.t50))
-    expect(Math.abs(r)).toBeLessThan(0.3)
-  })
-
-  it('states the correlation the probe rows hold, not one typed by hand', () => {
-    const r = corr(probe.map((e) => Math.log10(e.peak)), probe.map((e) => e.t50))
-    expect(Math.abs(r).toFixed(2)).toBe('0.21')
-  })
-
-  it('draws only the window in which no curve was clamped to its own peak', () => {
-    // build-dataset.js clamps the normalised curve to 1. Four articles come back to or
-    // above their peak later in the series, and a clamped point drawn inside the band
-    // would state "equal to the peak" for a day that was at or above it. All four sit
-    // outside the drawn window. If that ever stops being true, this goes red before the
-    // band can print it.
-    const clampedIn = dataset.events
-      .filter((e) => e.curve.slice(1, DAYS + 1).some((v) => v >= 1))
-      .map((e) => e.article)
-    expect(clampedIn).toEqual([])
-
-    const clampedOut = dataset.events
-      .filter((e) => e.curve.slice(DAYS + 1).some((v) => v >= 1))
-      .map((e) => e.article)
-      .sort()
-    expect(clampedOut).toEqual([
-      'JD Vance',
-      'Jeffrey Epstein',
-      'Naomi Osaka',
-      'Sam Bankman-Fried',
-    ])
-    expect(src).toMatch(/days\s*=\s*30/)
-  })
-
-  it('draws in an order that does not track the colour variable', () => {
-    // dataset.json is grouped by class, and class order tracks peak size closely enough
-    // that the last layer drawn would read as a gradient produced by the draw order
-    // alone. Article name is deterministic and carries no magnitude signal.
-    const logPeak = (e) => Math.log10(e.peak)
-    const fileOrder = corr(dataset.events.map((_, i) => i), dataset.events.map(logPeak))
-    const drawn = [...dataset.events].sort((a, b) => a.article.localeCompare(b.article))
-    const drawOrder = corr(drawn.map((_, i) => i), drawn.map(logPeak))
-    expect(Math.abs(fileOrder)).toBeGreaterThan(0.3)
-    expect(Math.abs(drawOrder)).toBeLessThan(0.15)
-    expect(src).toContain('localeCompare')
+  it('states days to half for the two peaks it names', () => {
+    const big = probe.reduce((a, b) => (b.peak > a.peak ? b : a))
+    const small = probe.reduce((a, b) => (b.peak < a.peak ? b : a))
+    expect(big.t50).toBeLessThan(1)
+    expect(small.t50).toBeLessThan(1)
+    expect(fallText).toContain(`${big.t50} days`)
+    expect(fallText).toContain(String(small.t50))
   })
 })
 
-describe('beat 2 copy traces to the probe rows', () => {
-  const big = probe.reduce((a, b) => (b.peak > a.peak ? b : a))
-  const small = probe.reduce((a, b) => (b.peak < a.peak ? b : a))
-  const r = corr(probe.map((e) => Math.log10(e.peak)), probe.map((e) => e.t50))
-
-  it('names the largest and the smallest peak the probe recorded', () => {
-    expect(big.article).toBe('Matthew Perry')
-    expect(small.article).toBe('Orlando nightclub shooting')
-    for (const row of [big, small]) {
-      expect(bandText, row.article).toContain(row.article)
-      expect(bandText, row.article).toContain(row.peak.toLocaleString('en-US'))
-      expect(bandText, row.article).toContain(`${row.t50} days`)
-    }
-  })
-
-  it('prints the correlation the rows hold, carrying its own sign', () => {
+describe('beat 2 states what the fall does to the floor, on both measures', () => {
+  it('finds a rank relationship a straight line misses', () => {
+    // Why the beat prints two correlations rather than one. The floor runs from 0.43 to
+    // 51.88 times a page's own baseline, so a straight line spends its fit on the top of
+    // that range and reads the pair as almost nothing.
+    const r = corr(exponents57, floors57)
+    const p = rho(exponents57, floors57)
+    expect(Math.abs(r)).toBeLessThan(0.25)
+    expect(Math.abs(p)).toBeGreaterThan(0.5)
+    expect(Math.abs(p)).toBeGreaterThan(2 * Math.abs(r))
     expect(r).toBeLessThan(0)
-    expect(bandText).toContain(`r = −${Math.abs(r).toFixed(2)}`)
+    expect(p).toBeLessThan(0)
+    expect(fallText).toContain(`r = ${signed(r)}`)
+    expect(fallText).toContain(`ρ = ${signed(p)}`)
   })
 
-  it('every number in the beat is a probe row field or a count of rows', () => {
-    // Same rule as beat 1, against the other cited file. This match also takes decimals,
-    // which beat 1 has none of: t50 is printed to two places, so a match that stopped at
-    // the point would let a hand-typed fraction through on the digits either side of it.
+  it('agrees with dataset.json on that pair, so the correction is not one file deep', () => {
+    const ds = JSON.parse(readFileSync('src/data/dataset.json', 'utf8')).events
+    const byName = new Map(ds.map((e) => [e.article, e]))
+    const dsRows = floors.map((r) => byName.get(r.article))
+    expect(dsRows.every(Boolean)).toBe(true)
+    const p = rho(
+      dsRows.map((e) => e.powAlpha),
+      dsRows.map((e) => e.floor)
+    )
+    expect(p.toFixed(2)).toBe(rho(exponents57, floors57).toFixed(2))
+  })
+
+  it('keeps the suspect the page does rule out, on both measures', () => {
+    // Spike size against the floor is the reading the rest of the page rests on, and it is
+    // small whichever way it is measured. This is the one the beat still gets to state.
+    const r = corr(logPeak57, floors57)
+    const p = rho(logPeak57, floors57)
+    expect(Math.abs(r)).toBeLessThan(0.15)
+    expect(Math.abs(p)).toBeLessThan(0.15)
+    expect(fallText).toContain(`r = ${signed(r)}`)
+    expect(fallText).toContain(`ρ = ${signed(p)}`)
+  })
+
+  it('does not claim the fall was removed', () => {
+    expect(fallText).toContain('the fall is not removed here')
+    expect(fallText).not.toMatch(/no relationship|the cloud has no slope/i)
+  })
+})
+
+describe('beat 2 numbers are rows, counts of rows, or figures recomputed from them', () => {
+  it('every number in the beat traces', () => {
     const allowed = new Set()
     const allow = (n) => allowed.add(String(Number(n)))
-    // Only the rows this beat names may supply a figure. Allowing all 88 would have
-    // whitelisted every peak in the set and, through the event dates, every small integer.
-    const cited = probe.filter((row) => bandText.includes(row.article))
-    expect(cited.length).toBeGreaterThanOrEqual(2)
-    for (const row of cited) {
-      allow(row.peak)
-      allow(row.t50)
-      const [y, m, d] = row.event.split('-')
-      allow(y)
-      allow(m)
-      allow(d)
+    const big = probe.reduce((a, b) => (b.peak > a.peak ? b : a))
+    const small = probe.reduce((a, b) => (b.peak < a.peak ? b : a))
+    allow(big.t50)
+    allow(small.t50)
+    allow(probe.length)
+    allow(floors.length)
+    // The highest floor in the set, as a multiple of that subject's own baseline, printed
+    // to the one place the two files agree on for it.
+    allow((1 + Math.max(...floors57)).toFixed(1))
+    for (const v of [
+      corr(logPeak88, t50s88),
+      corr(logPeak88, exps88),
+      rho(logPeak88, exps88),
+      corr(exponents57, floors57),
+      rho(exponents57, floors57),
+      corr(logPeak57, floors57),
+      rho(logPeak57, floors57),
+    ]) {
+      allow(Math.abs(v).toFixed(2))
     }
-    allow(probe.length) // 88 events measured
-    allow(Math.abs(r).toFixed(2)) // the correlation, recomputed from those rows
 
-    const untraceable = (bandText.match(/\d[\d,]*(?:\.\d+)?/g) ?? [])
+    const untraceable = (fallText.match(/\d[\d,]*(?:\.\d+)?/g) ?? [])
       .map((n) => String(Number(n.replace(/,/g, ''))))
       .filter((n) => !allowed.has(n))
     expect(untraceable).toEqual([])
   })
 
-  it('cites the prior work the fall belongs to', () => {
-    const src = readFileSync('src/components/BeatBand.astro', 'utf8')
-    expect(bandText).toContain('Nature Human Behaviour')
-    expect(src).toContain('https://doi.org/10.1038/s41562-018-0474-5')
-  })
-})
-
-describe('beat 2 renders as written', () => {
   it('joins no two words where the template breaks a line beside an expression', () => {
-    // Astro drops the whitespace at a line break that sits directly against a {expr}, so
-    // a reflow of the source silently jams the copy: "88events", "gone in0.64",
-    // "shooting,2,782". The commas inside a thousands-separated number are digit-to-digit
-    // and do not match here.
-    expect(bandText).not.toMatch(/[A-Za-z]\d|\d[A-Za-z]/)
-    expect(bandText).not.toMatch(/\.[A-Za-z]/)
-    expect(bandText).not.toMatch(/[A-Za-z],\d/)
+    expect(fallText).not.toMatch(/[A-Za-z]\d|\d[A-Za-z]/)
+    expect(fallText).not.toMatch(/\.[A-Za-z]/)
+    expect(fallText).not.toMatch(/[A-Za-z],\d/)
   })
 })
 
-describe('beat 2 carries the magnitude claim on an axis, not on hue over the band', () => {
-  const dataset = JSON.parse(readFileSync('src/data/dataset.json', 'utf8'))
-  const wiring = readFileSync('src/components/BeatBand.astro', 'utf8')
-  const events = dataset.events
-
-  it('records the gradient that disqualified a magnitude-coloured band', () => {
-    // Spec 6 is binding: the band may colour by peak magnitude only if the colours show
-    // no ordering. They order. A normalised curve is (views - base) / (peak - base), so a
-    // larger spike is a larger multiple of the same page's ordinary traffic and the same
-    // return toward that traffic sits lower as a share of the peak. By day ten the level
-    // tracks magnitude at the correlation asserted here, and the rendered band read as
-    // warm along the bottom and cool along the top. The claim moved to a mark whose axis
-    // is the quantity being claimed.
-    const r = corr(
-      events.map((e) => Math.log10(e.peak)),
-      events.map((e) => Math.log10(Math.max(e.curve[10], 1e-6)))
-    )
-    expect(r).toBeLessThan(-0.4)
-
-    // The rate, which is what beat 2 actually claims, does not track magnitude.
-    const rate = corr(events.map((e) => Math.log10(e.peak)), events.map((e) => e.t50))
-    expect(Math.abs(rate)).toBeLessThan(0.3)
-  })
-
-  it('draws the full band in a single ink', () => {
-    expect(wiring).toMatch(/#band[\s\S]{0,200}ink:/)
-  })
-
-  it('places peak size on the scatter x axis and days to half on its y', async () => {
-    const { rateScatterPoints } = await import('../src/scripts/band.js')
-    const pts = rateScatterPoints(events)
-    expect(pts).toHaveLength(events.length)
-    for (let i = 0; i < events.length; i++) {
-      expect(pts[i].x).toBe(Math.log10(events[i].peak))
-      expect(pts[i].y).toBe(Math.log10(events[i].t50))
+describe('beat 2 draws the ranks it states', () => {
+  it('gives every subject a place on all three axes, one subject per place', () => {
+    const axes = ladderAxes(fallRows)
+    for (const key of ['fall', 'floor', 'spike']) {
+      const slots = [...axes[key]].sort((a, b) => a - b)
+      expect(slots, key).toEqual(fallRows.map((_, i) => i))
     }
-    // The evidence the reader is asked to read: the cloud has no slope.
-    expect(Math.abs(corr(pts.map((p) => p.x), pts.map((p) => p.y)))).toBeLessThan(0.3)
+  })
+
+  it('puts the steepest fall, the lowest floor and the largest spike at the top', () => {
+    const axes = ladderAxes(fallRows)
+    const topOf = (key) => fallRows[axes[key].indexOf(0)]
+    expect(topOf('fall').exponent).toBe(Math.max(...exponents57))
+    expect(topOf('floor').floor).toBe(Math.min(...floors57))
+    expect(topOf('spike').peak).toBe(Math.max(...fallRows.map((r) => r.peak)))
+  })
+
+  it('orders the middle axis exactly as the ring at the top of the page is ordered', () => {
+    const axes = ladderAxes(fallRows)
+    const byAxis = fallRows.map((_, i) => fallRows[axes.floor.indexOf(i)].article)
+    const bySort = [...fallRows].sort((a, b) => a.floor - b.floor).map((r) => r.article)
+    expect(byAxis).toEqual(bySort)
   })
 })
 
-describe('beat 2 states the pair the way the drawn curves read', () => {
-  const dataset = JSON.parse(readFileSync('src/data/dataset.json', 'utf8'))
-  const find = (name) => dataset.events.find((e) => e.article === name)
+describe('mark renderer safety rules', () => {
+  const RENDERERS = ['src/scripts/orbit.js', 'src/scripts/ladder.js']
+  const sources = RENDERERS.map((f) => [f, readFileSync(f, 'utf8')])
 
-  it('claims a shared rate, and not a shared level the curves do not hold', () => {
-    const big = find('Matthew Perry')
-    const small = find('Orlando nightclub shooting')
-    // The rate is shared: both are half gone inside a day.
-    expect(big.t50).toBeLessThan(1)
-    expect(small.t50).toBeLessThan(1)
-    // The level is not. By the end of the drawn window they are a long way apart, so the
-    // copy states the rate and names the level as what separates them.
-    expect(small.curve[30] / big.curve[30]).toBeGreaterThan(3)
-    expect(bandText).toContain('the level, not the rate')
+  it('never uses multiply blending, which compounds to black on a light ground', () => {
+    for (const [f, src] of sources) expect(src, f).not.toContain("'multiply'")
+    expect(sources[0][1]).toContain("'source-over'")
+  })
+
+  it('preserves the drawing buffer so screenshots are possible', () => {
+    for (const [f, src] of sources) {
+      const contexts = src.match(/getContext\(/g) ?? []
+      const preserved = src.match(/preserveDrawingBuffer: true/g) ?? []
+      expect(contexts.length, f).toBeGreaterThan(0)
+      expect(preserved.length, f).toBe(contexts.length)
+    }
+  })
+
+  it('sets no stroke width under one pixel, which many devices will not draw', () => {
+    // The old rule was that every width is exactly 1. The approved mark draws the block
+    // that ends below the ring a little heavier, so the rule is now the device constraint
+    // itself. Both renderers publish their width policy and it is run here across box
+    // sizes rather than grepped, since the ring computes its widths from the box and a
+    // floor written anywhere but the lineWidth line would never appear to a grep.
+    for (const S of [8, 40, 120, 345, 900, 4000]) {
+      const w = strokeWidths(S)
+      for (const [name, value] of Object.entries(w)) {
+        expect(value, `orbit ${name} at S=${S}`).toBeGreaterThanOrEqual(1)
+      }
+      expect(w.heavy, `S=${S}`).toBeGreaterThan(w.light)
+    }
+    for (const [name, value] of Object.entries(LADDER_WIDTHS)) {
+      expect(value, `ladder ${name}`).toBeGreaterThanOrEqual(1)
+    }
+    expect(LADDER_WIDTHS.below).toBeGreaterThan(LADDER_WIDTHS.above)
+
+    // And nothing sets a width outside that policy.
+    for (const [f, src] of sources) {
+      const widths = src.match(/lineWidth\s*=\s*[^\n]+/g) ?? []
+      expect(widths.length, f).toBeGreaterThan(0)
+      const numbers = widths.flatMap((w) => (w.match(/\d+(?:\.\d+)?/g) ?? []).map(Number))
+      for (const n of numbers) expect(n, `${f} :: ${n}`).toBeGreaterThanOrEqual(1)
+    }
+  })
+
+  it('carries the two poles in colour, so no width is the only thing saying which side', () => {
+    // What the width rule is actually protecting. A device that clamps every stroke to the
+    // same pixel still has to show which side of the ring a thread ends on.
+    const scale = floorScale([{ floor: -0.567 }, { floor: 50.883 }])
+    const warm = floorColour(-0.4, 0.8, scale)
+    const cool = floorColour(0.4, 0.8, scale)
+    expect(warm).not.toBe(cool)
+    // And within a pole, so each ramp is a reading and not a flat ink.
+    expect(floorColour(-0.1, 0.8, scale)).not.toBe(warm)
+    expect(floorColour(5, 0.8, scale)).not.toBe(cool)
+  })
+
+  it('re-syncs from the canvas box, never from a window resize event', () => {
+    for (const [f, src] of sources) {
+      expect(src, f).toContain('ResizeObserver')
+      expect(src, f).not.toMatch(/addEventListener\(\s*'resize'/)
+    }
+  })
+
+  it('takes no hover reveal that a phone cannot fire', () => {
+    for (const [f, src] of sources) {
+      expect(src, f).not.toContain('pointermove')
+      expect(src, f).not.toContain('pointerleave')
+    }
+  })
+
+  it('paints the block that ends below the ring last, not the file order', () => {
+    // floor.json is itself sorted by the floor. Drawing in file order would lay the whole
+    // cool half over the whole warm one, and the layering would read as an ordering the
+    // mark never claims.
+    expect(floors.every((r, i) => i === 0 || floors[i - 1].floor <= r.floor)).toBe(true)
+    for (const [f, src] of sources) {
+      expect(src, f).toMatch(
+        /Number\([A-Za-z]+\[i\]\.floor < 0\) - Number\([A-Za-z]+\[j\]\.floor < 0\)/
+      )
+    }
+  })
+})
+
+describe('the ring is drawn against the level it says it is drawn against', () => {
+  // The ring is each page at its own clean baseline, so the radius has to be a level. The
+  // normalised curve in dataset.json is a share of the lift over the near window and is
+  // clipped at one, which is neither. On Elizabeth II it reads a third of her baseline at
+  // day sixty, where the daily views put her above it.
+  const dataset = JSON.parse(readFileSync('src/data/dataset.json', 'utf8')).events
+  const dsOf = (name) => dataset.find((e) => e.article === name)
+  const subjects = orbitSubjects(floors, probe)
+
+  it('reads every day off the daily views over that article own clean baseline', () => {
+    expect(subjects).toHaveLength(floors.length)
+    for (const s of subjects) {
+      const row = floors.find((r) => r.article === s.article)
+      const p = probe.find((r) => r.article === s.article)
+      expect(s.base, s.article).toBe(row.clean_base)
+      for (let d = 0; d <= 60; d++) {
+        const raw = p.series[String(p.pk_off + d)]
+        expect(raw, `${s.article} day ${d}`).not.toBeUndefined()
+        expect(s.levels[d], `${s.article} day ${d}`).toBe(raw)
+        expect(ratioAt(s, d)).toBe(raw / row.clean_base)
+      }
+    }
+  })
+
+  it('starts every thread at the peak the probe recorded for it', () => {
+    for (const s of subjects) expect(s.levels[0], s.article).toBe(s.peak)
+  })
+
+  it('is not the reading the normalised curve would have given', () => {
+    const lead = subjects.find((s) => s.article === 'Elizabeth II')
+    const e = dsOf('Elizabeth II')
+    const fromCurve = (e.curve[60] * e.peak) / lead.base
+    expect(fromCurve).toBeLessThan(1)
+    expect(ratioAt(lead, 60)).toBeGreaterThan(1)
+  })
+
+  it('covers three subjects whose curve is clipped inside the window it draws', () => {
+    // The other reason the curve cannot carry this mark. These come back to or above their
+    // own peak inside the sixty days, and a clipped point drawn on a radius would state
+    // "equal to the peak" for a day that was at or above it.
+    const clipped = dataset
+      .filter((e) => floors.some((r) => r.article === e.article))
+      .filter((e) => e.curve.slice(1, 61).some((v) => v >= 1))
+      .map((e) => e.article)
+      .sort()
+    expect(clipped).toEqual(['Jeffrey Epstein', 'Naomi Osaka', 'Sam Bankman-Fried'])
+    for (const name of clipped) {
+      const s = subjects.find((x) => x.article === name)
+      const e = dsOf(name)
+      const day = e.curve.slice(1, 61).findIndex((v) => v >= 1) + 1
+      expect(ratioAt(s, day), name).not.toBe(s.peak / s.base)
+    }
+  })
+})
+
+describe('beat 2 gates go red on a planted defect', () => {
+  it('the rank gate fails when the tail is taken out of the floor', () => {
+    // What the two correlations are separating. On the floor as it stands the two readings
+    // are a third of a correlation apart. Take the tail out by ranking the floor and they
+    // land on each other, which is the whole reason the beat prints both. The residue is
+    // the ten tied exponents, which the rank measure averages and the straight line does
+    // not.
+    const live = Math.abs(rho(exponents57, floors57) - corr(exponents57, floors57))
+    expect(live).toBeGreaterThan(0.3)
+    const flattened = rankOf(floors57)
+    const planted = Math.abs(rho(exponents57, flattened) - corr(exponents57, flattened))
+    expect(planted).toBeLessThan(0.05)
+    expect(planted).toBeLessThan(live / 10)
+  })
+
+  it('the spike gate fails when the floor is made to follow the peak', () => {
+    expect(Math.abs(rho(logPeak57, logPeak57))).not.toBeLessThan(0.15)
+  })
+
+  it('the width rule fails on a planted sub-pixel floor in the policy', () => {
+    // The policy is a function of the box, so the defect to plant is a floor that holds on
+    // a large canvas and gives way on a small one. The live policy holds at every size.
+    const planted = (S) => ({ heavy: Math.max(1.4, 0.0055 * S), light: Math.max(0.5, 0.0041 * S) })
+    expect(planted(120).light).toBeLessThan(1)
+    expect(strokeWidths(120).light).toBeGreaterThanOrEqual(1)
+  })
+
+  it('the two-pole colour rule fails when both ramps resolve to one ink', () => {
+    const scale = floorScale([{ floor: -0.567 }, { floor: 50.883 }])
+    const flat = () => floorColour(0, 0.8, scale)
+    expect(flat()).toBe(flat())
+  })
+
+  it('the level gate fails when the radius is taken from the clipped curve again', () => {
+    const events = JSON.parse(readFileSync('src/data/dataset.json', 'utf8')).events
+    const e = events.find((x) => x.article === 'Jeffrey Epstein')
+    const row = floors.find((r) => r.article === 'Jeffrey Epstein')
+    const day = e.curve.slice(1, 61).findIndex((v) => v >= 1) + 1
+    expect((e.curve[day] * e.peak) / row.clean_base).toBe(e.peak / row.clean_base)
   })
 })
 
@@ -530,7 +678,13 @@ describe('beat 3 claims trace to the data', () => {
     // The page keeps the title. The beat has to take the name back explicitly, or the
     // masthead states a process the data rejects and nothing on the page says otherwise.
     expect(modelText).toMatch(/no such number/)
-    expect(readFileSync('src/pages/index.astro', 'utf8')).toContain('<BeatModel />')
+    const page = readFileSync('src/pages/index.astro', 'utf8')
+    expect(page).toContain('<BeatModel />')
+    // The model beat fits the exponent that the fall beat then reads against the floor, so
+    // it has to come first. The old order put the fall beat above it and the exponent was
+    // named before anything had fitted it.
+    expect(page.indexOf('<BeatModel />')).toBeGreaterThan(page.indexOf('<BeatFloor />'))
+    expect(page.indexOf('<BeatFall />')).toBeGreaterThan(page.indexOf('<BeatModel />'))
   })
 })
 
@@ -945,7 +1099,7 @@ describe('beat 4 renders as written', () => {
     const page = readFileSync('src/pages/index.astro', 'utf8')
     expect(page).toContain('<BeatDivergence />')
     expect(page).toContain('<BeatCorrection />')
-    expect(page.indexOf('<BeatDivergence />')).toBeGreaterThan(page.indexOf('<BeatModel />'))
+    expect(page.indexOf('<BeatDivergence />')).toBeGreaterThan(page.indexOf('<BeatFall />'))
     expect(page.indexOf('<BeatCorrection />')).toBeGreaterThan(page.indexOf('<BeatDivergence />'))
   })
 })
@@ -1036,12 +1190,31 @@ describe('the coda states no figure of its own', () => {
     expect(codaHtml).toMatch(/id="coda-metrics"[^>]*hidden/)
   })
 
-  it('draws the reader onto the same single-ink band beat 2 draws', () => {
+  it('draws the reader into the same ring the page opens on', () => {
     const src = readFileSync('src/components/CodaLookup.astro', 'utf8')
-    const beat2 = readFileSync('src/components/BeatBand.astro', 'utf8')
-    const inkOf = (text) => (text.match(/ink: '([\d, ]+)'/) ?? [])[1]
-    expect(inkOf(src)).toBe(inkOf(beat2))
-    expect(src).toContain('highlight')
+    const hero = readFileSync('src/components/BeatFloor.astro', 'utf8')
+    for (const text of [src, hero]) {
+      expect(text).toContain("from '../scripts/orbit.js'")
+      expect(text).toContain('orbitSubjects(floors, probe)')
+      expect(text).toContain('mountOrbit')
+    }
+    // Threaded into the set at its own place in the order rather than parked beside it,
+    // which is what makes the round trip a reading against the 57 and not next to them.
+    expect(src).toContain('query')
+    expect(src).toContain('levels: result.levels')
+  })
+
+  it('places the query by its own floor, and draws none when there is no floor', () => {
+    const src = readFileSync('src/components/CodaLookup.astro', 'utf8')
+    const orbit = readFileSync('src/scripts/orbit.js', 'utf8')
+    expect(src).toMatch(/m\.floorReason === null[\s\S]{0,400}floor: m\.floor/)
+    expect(orbit).toContain('[...subjects, query].sort((a, b) => a.floor - b.floor)')
+  })
+
+  it('reads the query off the daily views, the same quantity the ring is drawn on', () => {
+    const coda = readFileSync('src/scripts/coda.js', 'utf8')
+    expect(coda).toContain('levels: Array.from({ length: 61 }')
+    expect(coda).toContain('series.get(peak.day + i) ?? null')
   })
 
   it('re-syncs from the canvas box and takes no reveal a phone cannot fire', () => {
@@ -1051,7 +1224,12 @@ describe('the coda states no figure of its own', () => {
       expect(src, f).not.toContain('pointerleave')
       expect(src, f).not.toMatch(/addEventListener\(\s*'resize'/)
     }
-    expect(readFileSync('src/components/CodaLookup.astro', 'utf8')).toContain('ResizeObserver')
+    // The observer lives in the renderer both marks mount through, so the coda is held to
+    // it by going through that mount rather than by wiring an observer of its own.
+    expect(readFileSync('src/components/CodaLookup.astro', 'utf8')).toContain('mountOrbit(')
+    expect(readFileSync('src/scripts/orbit.js', 'utf8')).toMatch(
+      /export function mountOrbit[\s\S]{0,400}new ResizeObserver\(render\)\.observe\(canvas\)/
+    )
   })
 
   it('joins no two words where the template breaks a line beside an expression', () => {

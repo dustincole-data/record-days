@@ -5,6 +5,8 @@ settles a year later.
 
 Spec: `.claude/plans/2026-08-20-attention-half-life-design.md`
 Plan: `.claude/plans/2026-08-20-attention-half-life-plan.md`
+Art direction: `.claude/plans/2026-08-21-art-direction-orbit/NOTE.md`, which is binding on
+the mark.
 
 ## Run it
 
@@ -36,6 +38,14 @@ Where the two files disagree at a printed digit, `floor.json` wins, because it i
 the figures were published from. `dataset.json` keeps the unrounded value and is used for
 counts and for anything derived from every row.
 
+The ring is drawn from `floor.json` and from the daily views in `results2.json`, not from
+the normalised curve in `dataset.json`. That curve is a share of the lift over the near
+window and is clipped at one, so it carries no level: on Elizabeth II it reads a third of
+her clean baseline at day sixty where the daily views put her above it, and it flattens
+three subjects on the days they came back to their own peak. `results2.json` keys its
+series on days from the event and the peak sits `pk_off` days along, so the sixty days the
+mark draws are `pk_off` through `pk_off + 60`.
+
 ## Layout
 
 | path | holds |
@@ -44,9 +54,14 @@ counts and for anything derived from every row.
 | `src/lib/pageviews.js` | the API client. URL building, User-Agent, series shaping. |
 | `src/lib/classify.js` | subject vs event article, floor eligibility. |
 | `scripts/build-dataset.js` | runs the above over the event list, writes `src/data/dataset.json`. |
-| `src/scripts/band.js` | the band and the rate scatter, Canvas 2D. |
+| `src/scripts/orbit.js` | the ring, Canvas 2D. Palette, geometry, and the join that builds the 57 subjects. |
+| `src/scripts/ladder.js` | the rank ladder beat 2 draws, Canvas 2D. |
 | `src/scripts/coda.js` | one live reader query, through the same `lib/` modules. |
 | `src/components/` | one component per beat, plus `CodaLookup`. |
+
+Page order is `BeatFloor`, `BeatModel`, `BeatFall`, `BeatDivergence`, `BeatCorrection`,
+`CodaLookup`. The model beat fits the exponent that the fall beat then reads against the
+floor, so it comes first.
 
 The coda reuses `lib/` unchanged, so a reader's number is computed by the code that
 produced the published ones. That is what makes the round trip a real check.
@@ -61,13 +76,18 @@ produced the published ones. That is what makes the round trip a real check.
   of rows. The coda's own template carries no figure at all.
 - **Copy register**: no causal language about the floor, no claim that it measures memory
   or legacy, no em dashes.
-- **Canvas rules**: alpha blending only, nothing encoded in `lineWidth`,
-  `preserveDrawingBuffer`, re-sync from the canvas box via `ResizeObserver`.
+- **Canvas rules**: alpha blending only, never multiply; `preserveDrawingBuffer`; re-sync
+  from the canvas box via `ResizeObserver`; no hover reveal. Stroke width is a published
+  policy that is run across box sizes rather than grepped, and no width may fall under a
+  pixel. Which side of the ring a thread ends on is carried by colour, so a device that
+  clamps every stroke to one pixel still reads correctly. Paint order puts the block that
+  ends below the ring last, since `floor.json` is itself sorted by the floor and file
+  order would lay the whole cool half over the whole warm one.
 - **Perturbation**: several gates carry a planted-defect test, so a gate that cannot go red
   is caught.
 
-Two checks are not automated and have to be run by hand: the tautology read of beat 2
-(spec 9.4) and the real-device phone pass (spec 9.5, which does not reproduce in emulation).
+One check is not automated and has to be run by hand: the real-device phone pass (spec 9.5,
+which does not reproduce in emulation).
 
 ## Deploy
 

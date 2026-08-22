@@ -41,14 +41,15 @@ import { API_START } from '../lib/classify.js'
 
   <figure class="fig">
     <canvas
-      id="coda-band"
-      class="band"
+      id="coda-orbit"
+      class="orbit"
       role="img"
-      aria-label="Normalised decay curves for every event in the set, with a reader's query drawn over them"
+      aria-label="The same ring as the top of this page, with a reader's own query drawn into it at its place in the order."
     ></canvas>
     <figcaption>
-      Every event in the set, each scaled to its own peak, over the first thirty days after
-      it. A query is drawn over them in black.
+      The same mark as the top of this page. A query that carries a floor is threaded into
+      it in black, at its own place in the order, so it is read against the set rather than
+      beside it.
     </figcaption>
   </figure>
 
@@ -73,28 +74,26 @@ import { API_START } from '../lib/classify.js'
 </section>
 
 <script>
-  import dataset from '../data/dataset.json'
-  import { drawBand } from '../scripts/band.js'
+  import floors from '../../data/probe/floor.json'
+  import probe from '../../data/probe/results2.json'
+  import { orbitSubjects, mountOrbit } from '../scripts/orbit.js'
   import { lookup, MESSAGES, FLOOR_NOTES } from '../scripts/coda.js'
 
   const form = document.querySelector('#coda-form')
-  const canvas = document.querySelector('#coda-band')
+  const canvas = document.querySelector('#coda-orbit')
   const statusLine = document.querySelector('#coda-status')
   const metrics = document.querySelector('#coda-metrics')
   const go = document.querySelector('#coda-go')
 
   if (form && canvas && statusLine && metrics && go) {
     const field = (name) => metrics.querySelector(`[data-field="${name}"]`)
+    const subjects = orbitSubjects(floors, probe)
 
-    // The same single ink beat 2 draws the full band in. Hue over the mass grades top to
-    // bottom on a quantity this mark does not claim, and the reader's own curve has to be
-    // the one thing on the canvas that reads apart from it.
-    let highlight = null
-    const render = () =>
-      drawBand(canvas, dataset.events, { ink: '47, 107, 122', alpha: 0.22, highlight })
+    // The reader's own thread is placed at its own floor rank inside the set, drawn in the
+    // page's ink so it is the one thing on the canvas that is not on either ramp.
+    let query = null
     // The canvas's own box, never a window resize event.
-    new ResizeObserver(render).observe(canvas)
-    render()
+    const render = mountOrbit(canvas, () => ({ subjects, opts: { query } }))
 
     const say = (text, tone) => {
       statusLine.textContent = text
@@ -139,15 +138,27 @@ import { API_START } from '../lib/classify.js'
       if (!result.ok) {
         // Never an empty chart with no message. Every failing state has a line, and the
         // one state that is not a failure is toned apart from the ones that are.
-        highlight = null
+        query = null
         render()
         say(MESSAGES[result.reason], result.reason === 'no-spike' ? 'note' : 'error')
         return
       }
 
-      highlight = { curve: result.curve }
+      const m = result.metrics
+      // A thread is drawn only where a floor was read. Without one there is no place in
+      // the order to put it, and the note in the panel says which state it landed in.
+      query =
+        m.floorReason === null
+          ? {
+              article: m.article,
+              peak: m.peak,
+              base: m.cleanBase,
+              floor: m.floor,
+              levels: result.levels,
+            }
+          : null
       render()
-      say(`${result.metrics.article}, measured live just now.`, 'note')
+      say(`${m.article}, measured live just now.`, 'note')
       show(result)
     })
   }
@@ -171,7 +182,7 @@ import { API_START } from '../lib/classify.js'
     flex-wrap: wrap;
     align-items: flex-start;
     gap: 1.25rem;
-    max-width: var(--measure);
+    max-width: 46rem;
   }
 
   .field {
@@ -181,9 +192,10 @@ import { API_START } from '../lib/classify.js'
 
   label {
     display: block;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: var(--ink-soft);
     margin-bottom: 0.4rem;
   }
@@ -222,7 +234,7 @@ import { API_START } from '../lib/classify.js'
     border-radius: 2px;
     padding: 0.55rem 1.4rem;
     min-height: 2.75rem;
-    margin-top: 1.62rem;
+    margin-top: 1.72rem;
     cursor: pointer;
   }
 
@@ -244,16 +256,14 @@ import { API_START } from '../lib/classify.js'
   }
 
   .fig {
-    margin: 2rem 0 0;
+    margin: 1.5rem 0 0;
+    max-width: 46rem;
   }
 
-  canvas {
+  .orbit {
     display: block;
     width: 100%;
-  }
-
-  .band {
-    height: clamp(300px, 50vw, 420px);
+    height: clamp(24rem, 42vw, 40rem);
   }
 
   figcaption {
@@ -273,14 +283,19 @@ import { API_START } from '../lib/classify.js'
     border-top: 1px solid var(--rule);
   }
 
+  .metrics[hidden] {
+    display: none;
+  }
+
   .metric.wide {
     grid-column: 1 / -1;
   }
 
   dt {
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: var(--ink-soft);
   }
 

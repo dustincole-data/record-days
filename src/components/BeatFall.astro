@@ -1,0 +1,202 @@
+---
+import floors from '../../data/probe/floor.json'
+import probe from '../../data/probe/results2.json'
+import { pearson, spearman } from '../lib/metrics.js'
+
+// Beat 2 states correlations, so like the beats either side of it every figure is
+// recomputed here from the cited rows rather than carried across from a spec. The rate of
+// the fall is results2.json's pow_a, the fitted exponent beat 3 has just measured; the
+// floor is floor.json's. The one multiple printed is floor.json's, to the one place both
+// files agree on for that subject.
+const byArticle = new Map(probe.map((r) => [r.article, r]))
+const rows = floors.map((r) => {
+  const p = byArticle.get(r.article)
+  if (!p) throw new Error(`no results2.json row for ${r.article}`)
+  return { article: r.article, peak: r.peak, floor: r.floor, exponent: p.pow_a }
+})
+
+const logPeakAll = probe.map((r) => Math.log10(r.peak))
+const fmt = (v) => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(2)}`
+
+// The measurement the beat is taking back: days to half the lift, against peak size, over
+// every event the probe measured.
+const rHalf = fmt(pearson(logPeakAll, probe.map((r) => r.t50)))
+const big = probe.reduce((a, b) => (b.peak > a.peak ? b : a))
+const small = probe.reduce((a, b) => (b.peak < a.peak ? b : a))
+
+// The same question against the fitted exponent, which is the rate of the whole fall.
+const rFall = fmt(pearson(logPeakAll, probe.map((r) => r.pow_a)))
+const pFall = fmt(spearman(logPeakAll, probe.map((r) => r.pow_a)))
+
+// The exponent against the floor, on the subjects that carry one.
+const logPeak = rows.map((r) => Math.log10(r.peak))
+const exponents = rows.map((r) => r.exponent)
+const floorOf = rows.map((r) => r.floor)
+const rExpFloor = fmt(pearson(exponents, floorOf))
+const pExpFloor = fmt(spearman(exponents, floorOf))
+const rPeakFloor = fmt(pearson(logPeak, floorOf))
+const pPeakFloor = fmt(spearman(logPeak, floorOf))
+
+// The tail a straight line spends its fit on, as a multiple of that subject's own clean
+// baseline. Printed to one place, which is a place floor.json and dataset.json agree on
+// for this row.
+const highest = (1 + Math.max(...floorOf)).toFixed(1)
+
+const ladder = JSON.stringify(rows.map((r) => ({
+  article: r.article,
+  peak: r.peak,
+  floor: r.floor,
+  exponent: r.exponent,
+})))
+---
+
+<section class="beat">
+  <p class="body">
+    The obvious answer is the fall. A spike that large should take longer to come down.
+  </p>
+
+  <p class="body">
+    This page used to answer that with days to half the lift, and days to half says no. The
+    largest peak in the set is half gone in {big.t50} days and the smallest in {small.t50},
+    and across all {probe.length} events the two run together at r = {rHalf}. That is one
+    crossing of one threshold. It is not the rate of the fall.
+  </p>
+
+  <p class="body">
+    The rate is the exponent fitted above, and against the exponent the spike does sort the
+    fall. The same {probe.length} events give r = {rFall} on the values and ρ = {pFall} on
+    the ranks. The bigger the spike, the steeper the curve under it.
+  </p>
+
+  <figure class="fig">
+    <div class="heads">
+      <span class="head start">The fall</span>
+      <span class="head mid">The floor</span>
+      <span class="head end">The spike</span>
+    </div>
+    <div class="ends top">
+      <span class="start">steepest exponent</span>
+      <span class="mid">furthest below its baseline</span>
+      <span class="end">largest peak</span>
+    </div>
+    <canvas
+      id="ladder"
+      class="ladder"
+      data-rows={ladder}
+      role="img"
+      aria-label="Every subject that carries a clean baseline, threaded between three axes: its position when the set is ordered by the exponent of its fall, by its floor, and by the size of its peak."
+    ></canvas>
+    <div class="ends bottom">
+      <span class="start">flattest exponent</span>
+      <span class="mid">furthest above it</span>
+      <span class="end">smallest peak</span>
+    </div>
+    <figcaption>
+      The {rows.length} subjects that carry a clean baseline, threaded between three orders
+      of the same set. A thread's height on an axis is its place in that order, not its
+      value. The colour is the middle axis, so it grades down the middle by construction.
+      Read the left half against the right: the same subjects, the same floor order, sorted
+      once by the fall and once by the spike.
+    </figcaption>
+  </figure>
+
+  <p class="body">
+    The exponent sorts the floor as well. A straight line reads r = {rExpFloor} across the {rows.length} subjects that carry one, which is small enough to pass over. On the ranks the
+    same subjects give ρ = {pExpFloor}. The floor is heavy tailed, the highest of them ends
+    the year at {highest} times its own baseline, and a straight line spends its fit out
+    there.
+  </p>
+
+  <p class="body">
+    So the fall is not removed here. What holds is the other suspect. Spike size does not
+    sort the floor on either measure, r = {rPeakFloor} and ρ = {pPeakFloor}, and that is the
+    reading the rest of this page rests on.
+  </p>
+</section>
+
+<script>
+  import { mountLadder } from '../scripts/ladder.js'
+
+  const canvas = document.querySelector('#ladder')
+  if (canvas) mountLadder(canvas, JSON.parse(canvas.dataset.rows))
+</script>
+
+<style>
+  .beat {
+    padding-bottom: 6rem;
+  }
+
+  .body {
+    max-width: var(--measure);
+    margin: 2rem 0 0;
+    font-size: 1.06rem;
+  }
+
+  .fig {
+    margin: 3rem 0 0;
+    max-width: 64rem;
+  }
+
+  .heads,
+  .ends {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: baseline;
+  }
+
+  .head {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .ends {
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+  }
+
+  .ends.top {
+    margin: 0.35rem 0 0.6rem;
+  }
+
+  .ends.bottom {
+    margin-top: 0.6rem;
+  }
+
+  .start {
+    text-align: left;
+  }
+
+  .mid {
+    text-align: center;
+  }
+
+  .end {
+    text-align: right;
+  }
+
+  .ladder {
+    display: block;
+    width: 100%;
+    height: clamp(22rem, 36vw, 34rem);
+  }
+
+  figcaption {
+    max-width: var(--measure);
+    margin: 1.5rem 0 0;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 46rem) {
+    .heads,
+    .ends {
+      font-size: 0.68rem;
+    }
+
+    .ends {
+      font-size: 0.68rem;
+    }
+  }
+</style>

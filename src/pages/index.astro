@@ -1,24 +1,36 @@
 ---
 import Base from '../layouts/Base.astro'
 import BeatFloor from '../components/BeatFloor.astro'
-import BeatBand from '../components/BeatBand.astro'
 import BeatModel from '../components/BeatModel.astro'
+import BeatFall from '../components/BeatFall.astro'
 import BeatDivergence from '../components/BeatDivergence.astro'
 import BeatCorrection from '../components/BeatCorrection.astro'
 import CodaLookup from '../components/CodaLookup.astro'
+import floors from '../../data/probe/floor.json'
+import probe from '../../data/probe/results2.json'
+
+// The colophon states the size and the span of the set. Both are read off the files rather
+// than typed, so a regenerated probe moves the line instead of leaving it stale.
+const years = probe.map((r) => Number(r.event.slice(0, 4)))
+const first = Math.min(...years)
+const last = Math.max(...years)
+const stand =
+  `Daily English Wikipedia pageviews for ${probe.length} events, and where the reading ` +
+  'settles a year later.'
 ---
-<Base
-  title="Attention Half-Life"
-  description="Daily English Wikipedia pageviews for 88 events, and where the reading settles a year later."
->
+<Base title="Attention Half-Life" description={stand}>
   <header class="masthead">
     <h1>Attention Half-Life</h1>
-    <p>Daily pageviews on English Wikipedia.</p>
+    <p>{stand}</p>
   </header>
   <BeatFloor />
-  <BeatBand />
   <BeatModel />
+  <BeatFall />
   <BeatDivergence />
   <BeatCorrection />
   <CodaLookup />
+  <p class="colophon">
+    Wikimedia pageviews API · English Wikipedia · {probe.length} events, {first} to {last} ·
+    {floors.length} with a clean pre-event baseline
+  </p>
 </Base>

@@ -1,6 +1,7 @@
 ---
 import floors from '../../data/probe/floor.json'
 import probe from '../../data/probe/results2.json'
+import { floorColour, floorScale } from '../scripts/orbit.js'
 
 // Beat 4 states published floor figures, so like beat 1 it draws them from floor.json,
 // the file floor.py wrote for exactly this. dataset.json keeps the unrounded quotient and
@@ -27,6 +28,12 @@ const TICKS = [0.5, 1, 2, 5, 10, 20, 50]
 // A subject sitting almost on the rule still gets a visible mark, drawn on its own side.
 const width = (r) => Math.max(0.15, Math.abs(X(mult(r)) - RULE))
 const left = (r) => (r.floor < 0 ? RULE - width(r) : RULE)
+
+// The same two ramps the ring at the top of the page is drawn with, so this is that mark
+// unrolled onto one axis rather than a second reading of the same rows. Warm below the
+// rule, cool above it, and each ramp stretched to the extreme its own side reaches.
+const ramp = floorScale(rows)
+const tone = (r) => floorColour(r.floor, r.floor < 0 ? 0.92 : 0.66, ramp)
 
 const below = rows.filter((r) => r.floor < 0).length
 const above = rows.length - below
@@ -105,11 +112,14 @@ const scandalsOver = overDeaths.filter((r) => r.class === 'scandal').length
               data-mark
               data-side={r.floor < 0 ? 'below' : 'above'}
             >
-              <span class="bar" style={`left:${left(r)}%;width:${width(r)}%`}></span>
+              <span
+                class="bar"
+                style={`left:${left(r)}%;width:${width(r)}%;background:${tone(r)}`}
+              ></span>
               {LABELLED.includes(r.article) && (
                 <span
                   class="tag"
-                  style={`left:${X(mult(r))}%;transform:translateX(${X(mult(r)) > 50 ? '-100%' : '0'})`}
+                  style={`left:${RULE}%;transform:translateX(${r.floor < 0 ? '-100%' : '0'})`}
                 >{r.article} {fmt(r)} times</span>
               )}
             </div>
@@ -119,6 +129,7 @@ const scandalsOver = overDeaths.filter((r) => r.class === 'scandal').length
       </div>
     </div>
     <figcaption>
+      The ring at the top of this page, unrolled onto one axis and kept in the same order.
       Every subject a year after its event, as a multiple of its own clean baseline. The
       rule is that baseline. The scale is logarithmic. Sorted, so the colour change is the
       sign change.
@@ -159,7 +170,7 @@ const scandalsOver = overDeaths.filter((r) => r.class === 'scandal').length
 
   figcaption {
     max-width: var(--measure);
-    margin: 1.6rem 0 0;
+    margin: 2.75rem 0 0;
     font-size: 0.92rem;
     color: var(--ink-soft);
   }
@@ -170,7 +181,7 @@ const scandalsOver = overDeaths.filter((r) => r.class === 'scandal').length
 
   .plot {
     position: relative;
-    padding-bottom: 2rem;
+    padding-bottom: 1.5rem;
   }
 
   .axis {
@@ -211,7 +222,7 @@ const scandalsOver = overDeaths.filter((r) => r.class === 'scandal').length
 
   .row {
     position: relative;
-    height: 8px;
+    height: 7px;
     margin-bottom: 5px;
   }
 
@@ -223,16 +234,15 @@ const scandalsOver = overDeaths.filter((r) => r.class === 'scandal').length
     position: absolute;
     top: 0;
     height: 100%;
-    background: var(--above);
   }
 
-  .row[data-side='below'] .bar {
-    background: var(--below);
-  }
-
+  /* Anchored at the rule and turned outward from it. Every bar has one end on the rule, so
+     the tag sits over its own bar's own edge and never runs across the rule or off the
+     frame, whichever side of it the subject is on. */
   .tag {
     position: absolute;
     bottom: 100%;
+    padding: 0 0.5rem;
     margin-bottom: 4px;
     white-space: nowrap;
     font-size: 0.82rem;

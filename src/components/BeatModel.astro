@@ -20,7 +20,7 @@ const halveFrom = (t) => (t * (2 ** (1 / alpha) - 1)).toFixed(1)
 ---
 
 <section class="beat">
-  <p class="body">
+  <p class="lede">
     This page is called Attention Half-Life. The data does not show a half-life.
   </p>
 
@@ -44,6 +44,14 @@ const halveFrom = (t) => (t * (2 ** (1 / alpha) - 1)).toFixed(1)
 <style>
   .beat {
     padding-bottom: 6rem;
+  }
+
+  .lede {
+    max-width: 30ch;
+    margin: 0;
+    font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+    line-height: 1.2;
+    letter-spacing: -0.012em;
   }
 
   .body {

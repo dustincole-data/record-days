@@ -97,3 +97,39 @@ export function floor(series, peakDay, cleanBase) {
   if (vals.length === 0) return null
   return (median(vals) - cleanBase) / cleanBase
 }
+
+// Two correlations, since the page states both and the difference between them is itself a
+// finding. Pearson reads the values, so a heavy tail spends the fit on its own extremes.
+// Spearman reads the order, with tied values sharing the average of the ranks they span.
+export function pearson(xs, ys) {
+  const n = xs.length
+  const mx = xs.reduce((a, b) => a + b, 0) / n
+  const my = ys.reduce((a, b) => a + b, 0) / n
+  let cov = 0
+  let vx = 0
+  let vy = 0
+  for (let i = 0; i < n; i++) {
+    cov += (xs[i] - mx) * (ys[i] - my)
+    vx += (xs[i] - mx) ** 2
+    vy += (ys[i] - my) ** 2
+  }
+  return cov / Math.sqrt(vx * vy)
+}
+
+export function ranks(values) {
+  const order = values.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0])
+  const out = new Array(values.length)
+  let i = 0
+  while (i < order.length) {
+    let j = i
+    while (j + 1 < order.length && order[j + 1][0] === order[i][0]) j++
+    const shared = (i + j) / 2 + 1
+    for (let k = i; k <= j; k++) out[order[k][1]] = shared
+    i = j + 1
+  }
+  return out
+}
+
+export function spearman(xs, ys) {
+  return pearson(ranks(xs), ranks(ys))
+}
