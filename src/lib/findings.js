@@ -127,8 +127,314 @@ export function prepare(rows, renamed) {
       yearShare: wholeYear
         ? r.peak / Array.from({ length: 365 }, (_, d) => series[d]).reduce((a, b) => a + b, 0)
         : null,
+      quiet: quiet(series),
+      anniv: anniv(r.date),
+      lead: lead(series, r.base),
     }
   })
+}
+
+// ---------------------------------------------------------------------------
+// The anniversary
+//
+// A year after its peak day a page lifts for about two days and then goes flat
+// again. Every figure the page prints about that comes from the functions below,
+// read off data/census/top-days.json. The operational definitions are fixed in
+// .claude/plans/2026-08-27-anniversary-premise.md and are reproduced here verbatim
+// so that the port is mechanical and nothing is carried by hand.
+// ---------------------------------------------------------------------------
+
+// The quiet level a row is measured against: its own median over days 100 to 340,
+// the stretch after the fall has finished and before the anniversary window opens.
+// A row needs 200 of those 241 days present, and one sitting under the published
+// 20-readers-a-day validity floor is not a level at all. 203 of the 220 rows survive.
+export const QUIET_FROM = 100
+export const QUIET_TO = 340
+export const QUIET_MIN_DAYS = 200
+
+// Windows. The control and the landing histogram look 12 days either side of the
+// exact date, the dose count 10, and the scale figures 3. Each is stated wherever
+// it is used rather than assumed.
+export const ECHO_WINDOW = 12
+export const DOSE_WINDOW = 10
+export const SCALE_WINDOW = 3
+export const ECHO_LEVEL = 2
+export const RETURN_LEVEL = 1.5
+
+// The placebo runs the identical geometry at 16 other centres: a 21 day window over
+// a floor taken from the 46 days before it and the 36 days after, both held off by
+// 20 days so the window cannot feed its own floor.
+export const PLACEBO_FROM = 110
+export const PLACEBO_TO = 335
+export const PLACEBO_STEP = 15
+export const PLACEBO_HALF = 10
+export const PLACEBO_MIN_WINDOW = 15
+export const PLACEBO_GAP = 20
+export const PLACEBO_BACK = 65
+export const PLACEBO_FORWARD = 55
+export const PLACEBO_MIN_FLOOR = 60
+
+// A day of warning is a day already running at twice the row's own published
+// baseline. Counted backwards from the day before the peak, it separates events
+// that arrived without notice from ones the calendar announced.
+export const LEAD_LEVEL = 2
+export const LEAD_LIMIT = -30
+export const RAMP_DAYS = 3
+
+const round2 = (x) => (x === null ? null : +x.toFixed(2))
+const share = (part, whole) => (whole ? +((100 * part) / whole).toFixed(1) : null)
+
+// Every reading present in a span of day offsets, in order.
+export function daysIn(series, from, to) {
+  const out = []
+  for (let d = from; d <= to; d++) if (series[d] !== undefined) out.push(series[d])
+  return out
+}
+
+export function quiet(series) {
+  const days = daysIn(series, QUIET_FROM, QUIET_TO)
+  if (days.length < QUIET_MIN_DAYS) return null
+  const level = median(days)
+  return level < KNOWN_FLOOR ? null : level
+}
+
+// Whole calendar days from an event date to the same month and day one year later.
+// 365, or 366 where a 29 February falls inside the year. Two rows peaked on a 29
+// February itself, which has no counterpart the following year; those land on 1 March
+// at 366 days, the first date on which the day has passed.
+export function anniv(dateIso) {
+  const [y, m, d] = dateIso.split('-').map(Number)
+  return Math.round((Date.UTC(y + 1, m - 1, d) - Date.UTC(y, m - 1, d)) / 86400000)
+}
+
+// Consecutive days of warning before the peak. Rows whose baseline is zero are pages
+// created for their own event and have nothing to be twice, so they carry no reading.
+export function lead(series, base) {
+  if (!base) return null
+  let days = 0
+  for (let d = -1; d >= LEAD_LIMIT; d--) {
+    const v = series[d]
+    if (v === undefined || v < LEAD_LEVEL * base) break
+    days++
+  }
+  return days
+}
+
+export function leadClass(days) {
+  if (days === null) return 'unmeasured'
+  if (days === 0) return 'ambush'
+  return days >= RAMP_DAYS ? 'ramp' : 'warned'
+}
+
+// A row's reading at an offset from its own exact anniversary, as a multiple of its
+// own quiet level.
+export function echoAt(event, off) {
+  if (event.quiet === null) return null
+  const v = event.series[event.anniv + off]
+  return v === undefined ? null : v / event.quiet
+}
+
+export function bestEcho(event, half) {
+  let value = null
+  let offset = null
+  for (let o = -half; o <= half; o++) {
+    const e = echoAt(event, o)
+    if (e !== null && (value === null || e > value)) {
+      value = e
+      offset = o
+    }
+  }
+  return { value, offset }
+}
+
+// The placebo statistic, run at any centre including 365 itself. Identical geometry
+// everywhere, so the only thing that changes between centres is the day it sits on.
+export function bump(series, centre) {
+  const window = daysIn(series, centre - PLACEBO_HALF, centre + PLACEBO_HALF)
+  if (window.length < PLACEBO_MIN_WINDOW) return null
+  const floor = daysIn(series, centre - PLACEBO_BACK, centre - PLACEBO_GAP).concat(
+    daysIn(series, centre + PLACEBO_GAP, centre + PLACEBO_FORWARD)
+  )
+  if (floor.length < PLACEBO_MIN_FLOOR) return null
+  const level = median(floor)
+  if (level < KNOWN_FLOOR) return null
+  return Math.max(...window) / level
+}
+
+// A row with no reading at an offset has not been shown to echo, so it stays in its
+// group and sorts below every row that does have one. Four of the 203 stop short of a
+// full year; dropping them instead would raise every share and every median in the
+// table by treating an unobserved anniversary as an absent one.
+const orNothing = (v) => (v === null ? 0 : v)
+
+function echoGroup(set) {
+  const day0 = set.map((e) => orNothing(echoAt(e, 0)))
+  const best = set.map((e) => orNothing(bestEcho(e, ECHO_WINDOW).value))
+  return {
+    n: set.length,
+    observed: set.filter((e) => echoAt(e, 0) !== null).length,
+    day0: round2(median(day0)),
+    over2: share(best.filter((v) => v >= ECHO_LEVEL).length, set.length),
+    best: round2(median(best)),
+  }
+}
+
+// A title that carries a year or an ordinal names a scheduled, numbered occasion.
+// A parenthesised year is a disambiguator on the end of an ordinary title and is not
+// part of the name, so it is stripped before the test: Moonlight (2016 film) is a
+// film, not an annual event.
+const YEAR_OR_ORDINAL = /\d{4}|\d+(?:st|nd|rd|th)/
+export function numbered(article) {
+  return YEAR_OR_ORDINAL.test(article.replace(/[_\s]*\([^)]*\)$/, ''))
+}
+
+export function anniversary(events) {
+  const rows = events.filter((e) => e.quiet !== null)
+  const withBase = events.filter((e) => e.base > 0)
+
+  // The curve, drawn at literal day offsets from each row's own peak, as the median
+  // multiple of that row's quiet level.
+  const curve = []
+  for (let d = -30; d <= 400; d++) {
+    const vs = rows.map((e) => (e.series[d] === undefined ? null : e.series[d] / e.quiet)).filter((v) => v !== null)
+    if (vs.length) curve.push({ d, m: round2(median(vs)), n: vs.length })
+  }
+  const plain = curve.filter((p) => p.d >= QUIET_FROM && p.d <= QUIET_TO)
+  const plainHigh = plain.slice().sort((a, b) => b.m - a.m)[0]
+  const at365 = rows.map((e) => (e.series[365] === undefined ? null : e.series[365] / e.quiet)).filter((v) => v !== null)
+
+  // The placebo. Every centre is scored over every row that can carry the geometry,
+  // which is why the counts differ slightly between centres.
+  const centres = []
+  for (let c = PLACEBO_FROM; c <= PLACEBO_TO; c += PLACEBO_STEP) centres.push(c)
+  const placeboAt = (centre) => {
+    const bs = events.map((e) => bump(e.series, centre)).filter((v) => v !== null)
+    return {
+      centre,
+      n: bs.length,
+      median: round2(median(bs)),
+      over2: share(bs.filter((v) => v >= 2).length, bs.length),
+      over3: share(bs.filter((v) => v >= 3).length, bs.length),
+    }
+  }
+  const placebo = centres.map(placeboAt)
+  const placeboReal = placeboAt(365)
+
+  const ambush = rows.filter((e) => e.lead === 0)
+  const ramp = rows.filter((e) => e.lead >= RAMP_DAYS)
+
+  // Where the best day in the window falls, among the rows that reach twice their
+  // quiet level at all.
+  const landed = rows
+    .map((e) => {
+      const { value, offset } = bestEcho(e, ECHO_WINDOW)
+      return value !== null && value >= ECHO_LEVEL ? { article: e.article, off: offset, echo: value } : null
+    })
+    .filter(Boolean)
+  const landHist = {}
+  for (const l of landed) landHist[l.off] = (landHist[l.off] || 0) + 1
+
+  // Scale, read at the tight window: the best day near the anniversary against the
+  // day that put the page on the list in the first place.
+  const scaleShare = rows.map((e) => {
+    const { offset } = bestEcho(e, SCALE_WINDOW)
+    return offset === null ? 0 : e.series[e.anniv + offset] / e.peak
+  })
+  const largest = rows
+    .map((e) => {
+      const { offset } = bestEcho(e, SCALE_WINDOW)
+      return offset === null ? null : { article: e.article, peak: e.peak, share: +(100 * (e.series[e.anniv + offset] / e.peak)).toFixed(1) }
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.share - a.share)
+    .slice(0, 8)
+  const dose = rows.map((e) => {
+    let n = 0
+    for (let o = -DOSE_WINDOW; o <= DOSE_WINDOW; o++) {
+      const v = echoAt(e, o)
+      if (v !== null && v >= ECHO_LEVEL) n++
+    }
+    return n
+  })
+  // Rows whose anniversary is observable and never reaches 1.5 times their quiet
+  // level anywhere in the window. The four rows with no observable anniversary are
+  // not among them; nothing was measured there to fall short.
+  const observed = rows.filter((e) => bestEcho(e, ECHO_WINDOW).value !== null)
+  const neverBack = observed
+    .filter((e) => bestEcho(e, ECHO_WINDOW).value < RETURN_LEVEL)
+    .sort((a, b) => b.peak - a.peak)
+
+  const dayBefore = (set) => round2(median(set.map((e) => e.series[-1] / e.base)))
+  const era = rows.slice().sort((a, b) => a.date.localeCompare(b.date))
+  const half = Math.floor(era.length / 2)
+
+  return {
+    n: rows.length,
+    // Every threshold the copy is allowed to name, carried as a field so that a
+    // figure in a sentence has a row to come from and cannot be typed in.
+    definitions: {
+      echoLevel: ECHO_LEVEL, returnLevel: RETURN_LEVEL,
+      echoWindow: ECHO_WINDOW, doseWindow: DOSE_WINDOW, scaleWindow: SCALE_WINDOW,
+      leadLevel: LEAD_LEVEL, rampDays: RAMP_DAYS,
+      placeboFrom: PLACEBO_FROM, placeboTo: PLACEBO_TO, placeboStep: PLACEBO_STEP,
+      placeboHalf: PLACEBO_HALF, placeboGap: PLACEBO_GAP,
+      placeboBack: PLACEBO_BACK, placeboForward: PLACEBO_FORWARD,
+      total: events.length, lastDay: 400,
+    },
+    quiet: { from: QUIET_FROM, to: QUIET_TO, minDays: QUIET_MIN_DAYS, floor: KNOWN_FLOOR, dropped: events.length - rows.length },
+    annivDays: rows.reduce((a, e) => ({ ...a, [e.anniv]: (a[e.anniv] || 0) + 1 }), {}),
+    curve,
+    plain: { median: round2(median(plain.map((p) => p.m))), high: plainHigh },
+    at365: { n: at365.length, over2: share(at365.filter((v) => v >= ECHO_LEVEL).length, at365.length) },
+    placebo: { centres: placebo, real: placeboReal,
+      medianLo: Math.min(...placebo.map((p) => p.median)), medianHi: Math.max(...placebo.map((p) => p.median)),
+      over2Lo: Math.min(...placebo.map((p) => p.over2)), over2Hi: Math.max(...placebo.map((p) => p.over2)),
+      over3Lo: Math.min(...placebo.map((p) => p.over3)), over3Hi: Math.max(...placebo.map((p) => p.over3)) },
+    control: { window: ECHO_WINDOW, all: echoGroup(rows), ambush: echoGroup(ambush), ramp: echoGroup(ramp) },
+    ambushCurve: Array.from({ length: 2 * ECHO_WINDOW + 1 }, (_, i) => i - ECHO_WINDOW).map((o) => {
+      const vs = ambush.map((e) => echoAt(e, o)).filter((v) => v !== null)
+      return { off: o, m: round2(median(vs)), n: vs.length }
+    }),
+    landing: {
+      n: landed.length, hist: landHist,
+      mode: Object.entries(landHist).sort((a, b) => b[1] - a[1])[0],
+      withinOne: share(landed.filter((l) => Math.abs(l.off) <= 1).length, landed.length),
+      weekOut: share(landed.filter((l) => Math.abs(l.off) >= 2 && l.off % 7 === 0).length, landed.length),
+      weekOutN: landed.filter((l) => Math.abs(l.off) >= 2 && l.off % 7 === 0).length,
+    },
+    scale: {
+      window: SCALE_WINDOW,
+      shareOfPeak: +(100 * median(scaleShare)).toFixed(2),
+      days: { window: DOSE_WINDOW, median: median(dose) },
+      neverBack: { n: neverBack.length, share: share(neverBack.length, rows.length), names: neverBack.map((e) => e.article) },
+      largest,
+    },
+    leadEdge: {
+      n: withBase.length,
+      ambush: withBase.filter((e) => e.lead === 0).length,
+      warned: withBase.filter((e) => e.lead >= 1 && e.lead < RAMP_DAYS).length,
+      ramp: withBase.filter((e) => e.lead >= RAMP_DAYS).length,
+      ambushShare: share(withBase.filter((e) => e.lead === 0).length, withBase.length),
+      rampShare: share(withBase.filter((e) => e.lead >= RAMP_DAYS).length, withBase.length),
+      dayBefore: { ambush: dayBefore(withBase.filter((e) => e.lead === 0)), ramp: dayBefore(withBase.filter((e) => e.lead >= RAMP_DAYS)) },
+      longest: withBase.slice().sort((a, b) => b.lead - a.lead).slice(0, 5).map((e) => ({ article: e.article, lead: e.lead })),
+    },
+    splits: [
+      { label: 'title carries a year or an ordinal', yes: echoGroup(rows.filter((e) => numbered(e.article))), no: echoGroup(rows.filter((e) => !numbered(e.article))) },
+      { label: 'peak under two million', yes: echoGroup(rows.filter((e) => e.peak < 2e6)), no: echoGroup(rows.filter((e) => e.peak >= 2e6)) },
+      { label: 'first half of the record', yes: echoGroup(era.slice(0, half)), no: echoGroup(era.slice(half)) },
+    ],
+    rows: rows.map((e) => {
+      const best = bestEcho(e, ECHO_WINDOW)
+      const tight = bestEcho(e, SCALE_WINDOW)
+      return {
+        article: e.article, date: e.date, peak: e.peak, base: e.base,
+        quiet: Math.round(e.quiet), anniv: e.anniv, lead: e.lead, kind: leadClass(e.lead),
+        day0: round2(echoAt(e, 0)), best: round2(best.value), at: best.offset,
+        share: tight.offset === null ? null : +(100 * (e.series[e.anniv + tight.offset] / e.peak)).toFixed(2),
+      }
+    }),
+  }
 }
 
 export function findings(events) {
@@ -164,6 +470,7 @@ export function findings(events) {
   const early = tenthIn(2016, 2020), late = tenthIn(2022, 2026)
 
   return {
+    anniversary: anniversary(events),
     persistence: persistence(events),
     trend: { early: { n: early.length, median: median(early) }, late: { n: late.length, median: median(late) }, test: mannWhitney(early, late) },
     top: events.slice(0, 12).map(named),
