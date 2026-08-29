@@ -70,8 +70,26 @@ const alt = await p.evaluate((sels) => {
 check('every mark carries an alt text', alt.bare === 0, `${alt.n} marks, ${alt.bare} bare`);
 
 // ---------------------------------------------------------------- PROJECT CHECKS
-// One per interactive mark. Assert the STATE the reader is left in, not that a click
-// happened: "the readout says 1907", "tapping again releases it", "the stepper moves one".
+//
+// The one thing that can silently fail here: the server draws every sheet at a default
+// width and a script redraws it at the width the box actually has. If that script never
+// runs, the page still looks whole because the svg scales, and every label on it is then
+// the wrong size for its room. So the check is the state the reader is left in: each
+// sheet's own width attribute matches the box it sits in, at the phone width where the
+// server default is furthest away.
+const drawn = await p.evaluate(() => [...document.querySelectorAll('[data-draw]')].map((el) => {
+  const svg = el.querySelector('svg')
+  return {
+    name: el.dataset.draw,
+    box: Math.round(el.clientWidth),
+    svg: svg ? Math.round(Number(svg.getAttribute('width'))) : null,
+    stacked: !!svg && (svg.innerHTML.match(/class="tick"/g) || []).length > 0,
+  }
+}))
+check('every sheet is redrawn at the width its box actually has',
+      drawn.length > 0 && drawn.every((d) => d.svg !== null && Math.abs(d.svg - d.box) <= 1),
+      drawn.map((d) => `${d.name} ${d.svg}/${d.box}`).join('  '))
+
 
 // ---------------------------------------------------------------- desktop keyboard
 const ctx2 = await b.newContext({ viewport: { width: 1440, height: 900 } });
