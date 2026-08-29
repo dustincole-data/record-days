@@ -1,0 +1,10 @@
+# The seven files left over from the retired anniversary premise. They are untracked in
+# git and stay on the laptop, but a CLI deploy uploads the working directory rather than
+# the commit, so they are named here or the dead page ships at /anniversary.
+src/pages/anniversary.astro
+src/lib/hero.js
+src/scripts/hero.js
+scripts/build-hero.js
+public/hero.bin
+data/census/hero.json
+test/hero.test.js
