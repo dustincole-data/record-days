@@ -3,3 +3,4 @@ dist/
 .astro/
 .vercel/
 __pycache__/
+public/og/*.svg

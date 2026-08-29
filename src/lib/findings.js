@@ -479,6 +479,10 @@ export const CAST_LAGS = 3
 export const CAST_TOP_SHARE = 0.05
 export const NULL_DRAWS = 20000
 export const NULL_SEED = 20260828
+// The region a pair with no shared record day occupies, cut at these two percentiles
+// of the far-pair distribution. The sheet paints it, so the levels are data.
+export const BAND_LO = 0.05
+export const BAND_HI = 0.95
 
 const DAY_MS = 86400000
 export const epochDay = (iso) => Math.round(Date.parse(iso + 'T00:00:00Z') / DAY_MS)
@@ -733,7 +737,7 @@ export function cast(events) {
     }
   }
   const farRs = far.map((p) => p.r).sort((x, y) => x - y)
-  const p95 = farRs[Math.floor(0.95 * farRs.length)]
+  const p95 = farRs[Math.floor(BAND_HI * farRs.length)]
   const bucket = (set) => ({ n: set.length, median: +median(set.map((p) => p.r)).toFixed(3) })
   const farLong = far.filter((p) => p.days >= 250)
 
@@ -879,10 +883,14 @@ export function cast(events) {
       [...backBuckets.same, ...backBuckets.near, ...backBuckets.far], backBuckets.same.length,
       median(backBuckets.same), true
     ),
-    rows: groups.map((g) => ({
-      date: g.date,
-      pages: g.pages.map((e) => ({ article: e.article, day: e.renamed || e.machine ? null : returnDay(e) })),
-    })),
+    rows: groups.map((g) => {
+      const pages = g.pages.map((e) => ({ article: e.article, day: e.renamed || e.machine ? null : returnDay(e) }))
+      // The span between the first and the last of a group's days is the thing the row
+      // draws and the thing the sentence names, so it is stored rather than left to
+      // whatever reads the file to work out for itself.
+      const days = pages.map((p) => p.day).filter((d) => d !== null)
+      return { date: g.date, gap: days.length > 1 ? Math.max(...days) - Math.min(...days) : null, pages }
+    }),
   }
 
   // --- the run-up matches too ---------------------------------------------
@@ -937,8 +945,14 @@ export function cast(events) {
     bond: {
       rows: usable.length, dropped: { renamed: events.filter((e) => e.renamed).length, machine: machine.length },
       same: bucket(same), near: bucket(near), far: bucket(far), farLong: bucket(farLong),
-      p05: +farRs[Math.floor(0.05 * farRs.length)].toFixed(3),
+      p05: +farRs[Math.floor(BAND_LO * farRs.length)].toFixed(3),
       p95: +p95.toFixed(3),
+      // The two percentile levels the band is cut at, and the share of the control
+      // that therefore sits inside it. The sheet draws that band and names it, so the
+      // levels are emitted rather than written into the caption by hand.
+      pLo: +(100 * BAND_LO).toFixed(0),
+      pHi: +(100 * BAND_HI).toFixed(0),
+      band: +(100 * (BAND_HI - BAND_LO)).toFixed(0),
       aboveP95: same.filter((p) => p.r > p95).length,
       permutation,
       withMachine: { rows: withMachine.length, far: { n: farWith.length, median: +median(farWith).toFixed(3) } },

@@ -16,6 +16,9 @@ export const strip = (html) =>
   html
     .replace(/<style[\s\S]*?<\/style>/g, ' ')
     .replace(/<script[\s\S]*?<\/script>/g, ' ')
+    // An axis tick is the scale's own output, not something anyone wrote. src/lib/marks
+    // marks them so the gate can tell a ruler apart from a claim.
+    .replace(/<text[^>]*class="tick"[^>]*>[\s\S]*?<\/text>/g, ' ')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
 
@@ -36,6 +39,9 @@ export function allowedFrom(value, set = new Set()) {
   else if (typeof value === 'string') {
     const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
     if (iso) for (const part of iso.slice(1)) add(set, Number(part))
+    // A figure inside one of the data's own strings is a row of the data too: the page
+    // that peaked is called "97th Academy Awards", and naming it is quoting the file.
+    else for (const part of value.match(/\d[\d,]*(?:\.\d+)?/g) ?? []) add(set, Number(part.replace(/,/g, '')))
   } else if (Array.isArray(value)) for (const v of value) allowedFrom(v, set)
   else if (value && typeof value === 'object') {
     for (const [k, v] of Object.entries(value)) {

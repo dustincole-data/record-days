@@ -12,12 +12,17 @@
     "test:watch": "vitest",
     "build:data": "node scripts/build-dataset.js",
     "build:hero": "node scripts/build-hero.js",
-    "analyse:cast": "node scripts/analyse-cast.js"
+    "analyse:cast": "node scripts/analyse-cast.js",
+    "gate": "node scripts/gate.mjs",
+    "shots": "node scripts/shots.mjs",
+    "interact": "node scripts/interact.mjs",
+    "og": "node scripts/build-og.mjs"
   },
   "dependencies": {
     "astro": "^7.2.4"
   },
   "devDependencies": {
+    "playwright-core": "^1.62.1",
     "vitest": "^4.1.11"
   }
 }

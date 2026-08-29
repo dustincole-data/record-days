@@ -292,3 +292,85 @@ two four-page casts only 50.5% and 47.9%.
   arm needs it; the disqualified list carries no series, so nothing else here can use
   the rejected rows.
 - No causal language about the floor. No em dashes in anything that ships.
+
+---
+
+# BUILD — 2026-08-29
+
+The site. Astro + Vercel, one repo one page, `cast.dustincoledata.com`.
+
+## Theme sentence
+
+**"A sheet, not a poster: the ruler is the page and the page is the ruler."**
+
+It decides: one white ground, Archivo only and never above 14px inside a mark, every sheet
+drawn to the width the reader actually has, and the two control populations carried on the
+same ruler as the claim rather than banished to a footnote. It rejects the obvious move,
+which was to ship the approved 1520px sheets as images and let a phone pinch-zoom them.
+
+## What was built
+
+| Finding | Section | Mark | State |
+|---|---|---|---|
+| 1 hero, the cast | `#cast` | `src/lib/marks/hero.js` | built |
+| 2 two kinds of record day | `#fame` | `src/lib/marks/fame.js` (two panels) | built |
+| 3 they come down together | `#back` | `src/lib/marks/back.js` | built |
+| 4 the tie is to the exact day | `#lag` | `src/lib/marks/lag.js` | built |
+| 5 what the correlation is in readers | `#cast` | third claim line, off `edges[].lift` | built as copy |
+| 6 bigger cast, tighter | `#cast` | legible in the hero, four-page casts sit high | carried |
+| 7 core and fringe | `#cast` | per-edge band widths inside each figure | carried |
+| 10 machine test + Question_mark | `#method` | stated with its own three readings | built |
+| 11 tie survives the year | `#lag` | note line, quarter by quarter | built |
+| 8 run-up matches | none | not built, out of this session's scope | open |
+| 9 Feb / Mar / Nov | none | not built, out of this session's scope; the empty-months arm stays unpublishable | open |
+| 12 scale for context | none | not built, out of this session's scope | open |
+
+**Converted: 9 of 12.**
+
+## Reflow, not scale
+
+Every mark is `(cast, width) -> {svg, height}`, server-rendered at a default width and
+redrawn client-side at the width its box actually has (`src/scripts/marks.js`), measuring
+text with the browser's own metrics rather than the built-in advance table. The hero and
+`back` carry two layouts, not one: three columns wide (date, figure, pages) and, under
+1000px, the pages above their own figure with the ruler taking the full sheet. `fame` is
+two independent panels that the page's grid folds from two columns to one. Verified at
+1440 / 1180 / 820 / 560 / 430 / 390 / 360 / 320.
+
+## Data change this session
+
+`src/lib/findings.js` gained three emitted fields, because the page prints them and a
+number the payload does not carry cannot be gated:
+
+- `bond.pLo`, `bond.pHi`, `bond.band` (5, 95, 90) from the new `BAND_LO` / `BAND_HI`
+  constants the percentile band was already cut at.
+- `back.rows[].gap`, the span the row draws.
+
+`npm run analyse:cast` regenerated `cast.json`; the diff is those fields and nothing else.
+`dataset.json` was not touched.
+
+## The guards
+
+- `test/copy.test.js` renders the real page and fails on any number that neither
+  `cast.json`, the census `meta` block nor `renamed.json` can account for. SVG `<text>` is
+  gated as copy; axis ticks carry `class="tick"` and are dropped, being the scale's own
+  output. Also gates the em dash, the banned register, the five section ids, the house
+  mark, the OG tags and every required methodology item.
+- `test/marks.test.js` guards the relations rather than only the endpoints: the three tie
+  buckets in order, the three coming-down buckets in order, the lag curve peaking at zero
+  and falling monotonically both ways, the record-day medians within 1%, the shared ruler
+  being one domain and one tick set, no text drawn outside its own sheet at twelve widths,
+  and the narrow sheet being taller than the wide one.
+- `npm run gate` AUDIT CLEAN at 1440 / 820 / 390 / 320. `npm run shots`, no horizontal
+  scroll at six widths. `npm run interact`.
+- 236 tests. The 125 that were pinned to the retired Orbit and floor components went with
+  them.
+
+## Left behind on purpose
+
+`src/layouts/Base.astro` and `src/styles/tokens.css` are now used by nothing in the
+committed tree. They are kept only so the seven untracked files from the dead anniversary
+premise still compile locally; delete them in the same commit that deletes those.
+
+`.claude/plans/` still holds the two dead-premise documents. Gate 2 wants one plan file per
+project; they were left untouched by instruction.

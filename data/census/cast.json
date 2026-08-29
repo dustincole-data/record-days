@@ -176,6 +176,9 @@
   },
   "p05": -0.15,
   "p95": 0.328,
+  "pLo": 5,
+  "pHi": 95,
+  "band": 90,
   "aboveP95": 23,
   "permutation": {
    "draws": 20000,
@@ -5274,6 +5277,7 @@
   "rows": [
    {
     "date": "2016-11-09",
+    "gap": 3,
     "pages": [
      {
       "article": "Donald_Trump",
@@ -5295,6 +5299,7 @@
    },
    {
     "date": "2020-11-08",
+    "gap": 3,
     "pages": [
      {
       "article": "Kamala_Harris",
@@ -5316,6 +5321,7 @@
    },
    {
     "date": "2022-02-24",
+    "gap": 11,
     "pages": [
      {
       "article": "Ukraine",
@@ -5333,6 +5339,7 @@
    },
    {
     "date": "2022-09-08",
+    "gap": 4,
     "pages": [
      {
       "article": "Elizabeth_II",
@@ -5350,6 +5357,7 @@
    },
    {
     "date": "2022-12-18",
+    "gap": 4,
     "pages": [
      {
       "article": "Lionel_Messi",
@@ -5367,6 +5375,7 @@
    },
    {
     "date": "2023-01-13",
+    "gap": 1,
     "pages": [
      {
       "article": "Lisa_Marie_Presley",
@@ -5384,6 +5393,7 @@
    },
    {
     "date": "2025-03-03",
+    "gap": 4,
     "pages": [
      {
       "article": "Anora",
@@ -5401,6 +5411,7 @@
    },
    {
     "date": "2016-02-29",
+    "gap": 5,
     "pages": [
      {
       "article": "Leonardo_DiCaprio",
@@ -5414,6 +5425,7 @@
    },
    {
     "date": "2016-04-21",
+    "gap": 31,
     "pages": [
      {
       "article": "Prince_(musician)",
@@ -5427,6 +5439,7 @@
    },
    {
     "date": "2018-08-16",
+    "gap": 42,
     "pages": [
      {
       "article": "Aretha_Franklin",
@@ -5440,6 +5453,7 @@
    },
    {
     "date": "2020-02-03",
+    "gap": 5,
     "pages": [
      {
       "article": "Shakira",
@@ -5453,6 +5467,7 @@
    },
    {
     "date": "2020-11-04",
+    "gap": 0,
     "pages": [
      {
       "article": "United_States_Electoral_College",
@@ -5466,6 +5481,7 @@
    },
    {
     "date": "2021-02-08",
+    "gap": 1,
     "pages": [
      {
       "article": "Tom_Brady",
@@ -5479,6 +5495,7 @@
    },
    {
     "date": "2021-04-09",
+    "gap": null,
     "pages": [
      {
       "article": "Prince_Philip,_Duke_of_Edinburgh",
@@ -5492,6 +5509,7 @@
    },
    {
     "date": "2022-03-28",
+    "gap": 2,
     "pages": [
      {
       "article": "Jada_Pinkett_Smith",
@@ -5505,6 +5523,7 @@
    },
    {
     "date": "2023-03-13",
+    "gap": 4,
     "pages": [
      {
       "article": "Everything_Everywhere_All_at_Once",
@@ -5518,6 +5537,7 @@
    },
    {
     "date": "2024-11-06",
+    "gap": 6,
     "pages": [
      {
       "article": "2024_United_States_presidential_election",
@@ -5531,6 +5551,7 @@
    },
    {
     "date": "2024-11-16",
+    "gap": 2,
     "pages": [
      {
       "article": "Jake_Paul",
@@ -5544,6 +5565,7 @@
    },
    {
     "date": "2026-02-20",
+    "gap": 13,
     "pages": [
      {
       "article": "Eric_Dane",

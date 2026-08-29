@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#ffffff"/>
+  <g style="mix-blend-mode:multiply">
+    <path d="M20 32 Q32 20 44 32 Q32 44 20 32 Z" fill="#C42E5E" opacity="0.55"/>
+  </g>
+  <circle cx="20" cy="32" r="9" fill="#5433B0" opacity="0.8"/>
+  <circle cx="44" cy="32" r="7" fill="#D6740E" opacity="0.85"/>
+</svg>

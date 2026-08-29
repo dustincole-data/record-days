@@ -1,0 +1,172 @@
+@font-face {
+  font-family: Archivo;
+  src: url('/fonts/archivo-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: Archivo;
+  src: url('/fonts/archivo-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: Archivo;
+  src: url('/fonts/archivo-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+
+/* White ground. The colour is in the marks and nowhere else, and the type stays small:
+   the biggest thing on any screen here is a sheet of data. */
+:root {
+  --ink: #1f1d1b;
+  --soft: #6b6560;
+  --rule: #b9b4ae;
+  --hair: #e6e2dc;
+  --blue: #3b5bdb;
+  --shell: min(1320px, 100% - 3rem);
+  font-family: Archivo, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #fff;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+
+.shell { width: var(--shell); margin-inline: auto; }
+
+.masthead { padding: 3.5rem 0 0; }
+.masthead h1 {
+  margin: 0;
+  font-size: clamp(30px, 4.4vw, 44px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.masthead .dek {
+  margin: 0.9rem 0 0;
+  max-width: 62ch;
+  font-size: clamp(16px, 1.25vw, 18px);
+  color: var(--ink);
+}
+.masthead .stand {
+  margin: 0.5rem 0 0;
+  max-width: 62ch;
+  font-size: clamp(15px, 1.1vw, 17px);
+  color: var(--soft);
+}
+
+section { padding: 3.25rem 0 0; scroll-margin-top: 1rem; }
+section > h2 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(21px, 2.1vw, 27px);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+section > .stand {
+  margin: 0 0 1.6rem;
+  max-width: 66ch;
+  font-size: clamp(15px, 1.1vw, 17px);
+  color: var(--ink);
+}
+section > .stand em { font-style: normal; color: var(--soft); }
+
+.rule { border: 0; border-top: 1px solid var(--rule); margin: 3.25rem 0 0; }
+
+/* Marks. Each box is measured and redrawn at the width it actually has; the svg the
+   server wrote is what a reader with no script gets, so it is never allowed to spill. */
+.mark { margin: 0; }
+.mark-box { width: 100%; }
+.mark-box svg { display: block; width: 100%; height: auto; max-width: 100%; }
+
+.pair {
+  display: grid;
+  gap: 2.5rem 2.75rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) { .pair { grid-template-columns: 1fr 1fr; } }
+
+.claim {
+  margin: 1.9rem 0 0;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--hair);
+  max-width: 72ch;
+  font-size: clamp(15px, 1.15vw, 17px);
+}
+.claim p { margin: 0 0 0.45rem; }
+.claim p:last-child { margin-bottom: 0; }
+
+.notes {
+  margin: 1.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-width: 88ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--soft);
+}
+.notes li { margin: 0 0 0.35rem; }
+
+/* Methodology. Two columns where there is room, one where there is not. */
+.method { display: grid; gap: 1.75rem 2.75rem; grid-template-columns: 1fr; }
+@media (min-width: 860px) { .method { grid-template-columns: 1fr 1fr; } }
+.method h3 {
+  margin: 0 0 0.4rem;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--soft);
+}
+.method p { margin: 0 0 0.6rem; font-size: 15px; line-height: 1.55; }
+.method p:last-child { margin-bottom: 0; }
+.method .wide { grid-column: 1 / -1; }
+
+.readings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: var(--soft);
+}
+.readings b { font-weight: 600; color: var(--ink); }
+
+.renamed {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--soft);
+}
+.renamed b { font-weight: 500; color: var(--ink); }
+
+.colophon {
+  margin: 2.5rem 0 0;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--rule);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--soft);
+  max-width: 92ch;
+}
+.colophon a { color: var(--soft); }
+
+footer { padding: 2.5rem 0 0; }
+
+@media (max-width: 720px) {
+  :root { --shell: min(1320px, 100% - 2rem); }
+  .masthead { padding-top: 2.25rem; }
+  section { padding-top: 2.5rem; }
+}
