@@ -10,7 +10,9 @@
     "astro": "astro",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build:data": "node scripts/build-dataset.js"
+    "build:data": "node scripts/build-dataset.js",
+    "build:hero": "node scripts/build-hero.js",
+    "analyse:cast": "node scripts/analyse-cast.js"
   },
   "dependencies": {
     "astro": "^7.2.4"

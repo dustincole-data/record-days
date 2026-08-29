@@ -130,6 +130,7 @@ export function prepare(rows, renamed) {
       quiet: quiet(series),
       anniv: anniv(r.date),
       lead: lead(series, r.base),
+      machine: machineHole(series, r.base),
     }
   })
 }
@@ -437,6 +438,574 @@ export function anniversary(events) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// The cast
+//
+// A record reading day does not happen to one page. It happens to a small set of
+// pages at once, and a year later the set is still moving together. Pages that
+// shared a date by coincidence are not. Every figure the page prints about that
+// comes from the functions below, read off data/census/top-days.json. The
+// operational definitions are fixed in .claude/plans/2026-08-28-the-cast-premise.md
+// and are reproduced here so the port is mechanical and nothing is carried by hand.
+//
+// Two conventions, both load-bearing:
+//
+//   The aftermath statistics drop the 8 renamed titles, exactly as the anniversary
+//   ones do, and they also drop any row carrying a machine hole (below). The
+//   premise file quotes a far-pair median of 0.026 because it was computed before
+//   the machine test existed; with Question_mark out it reads 0.027 and nothing
+//   else in the object moves. Both are carried, so the difference is visible
+//   rather than silent.
+//
+//   A missing reading is not a zero. Every window here counts the readings that
+//   are present and refuses to run when too few are.
+// ---------------------------------------------------------------------------
+
+// The residual window. Days 1 to 29 are excluded so the fall after the peak is not
+// inside it, and day 340 is the last offset 199 of the 220 rows can supply.
+export const CAST_FROM = 30
+export const CAST_TO = 340
+export const CAST_MIN_DAYS = 250
+// The detrend: subtract a 29-day centred rolling median of log readings, which
+// removes the shared decay shape, the one thing the qualification gate selects for.
+export const CAST_HALF = 14
+export const CAST_WINDOW_MIN = 20
+// Two rows are compared only over calendar dates both were read on.
+export const CAST_SHARED_MIN = 150
+// Peaks this far apart or less, but not on the same day, are the near-miss control.
+export const CAST_NEAR = 14
+export const CAST_LAGS = 3
+// "The days it was read most unusually" is the top 5% of a row's own residuals.
+export const CAST_TOP_SHARE = 0.05
+export const NULL_DRAWS = 20000
+export const NULL_SEED = 20260828
+
+const DAY_MS = 86400000
+export const epochDay = (iso) => Math.round(Date.parse(iso + 'T00:00:00Z') / DAY_MS)
+export const isoDay = (n) => new Date(n * DAY_MS).toISOString().slice(0, 10)
+
+// --- machine traffic the two shape tests did not catch ---------------------
+//
+// qualify() reads day 0, day 3, day 7 and the pre-peak median. A page driven by an
+// automated crawl can pass all three and still show a signature no readership has:
+// a single day sitting back at its own baseline with a day on either side running a
+// hundred times above it. People do not stop for one day and come back. One row of
+// the 220 carries it, and naming it is a ruling the file makes, not one typed in.
+export const MACHINE_AT = 3
+export const MACHINE_AROUND = 100
+export const MACHINE_FROM = -30
+export const MACHINE_TO = 30
+
+export function machineHole(series, base) {
+  if (!base) return null
+  for (let d = MACHINE_FROM; d <= MACHINE_TO; d++) {
+    const v = series[d], before = series[d - 1], after = series[d + 1]
+    if (v === undefined || before === undefined || after === undefined) continue
+    if (v <= MACHINE_AT * base && before >= MACHINE_AROUND * base && after >= MACHINE_AROUND * base) {
+      return { day: d, before, value: v, after, base }
+    }
+  }
+  return null
+}
+
+// --- the residual series ----------------------------------------------------
+//
+// Keyed by CALENDAR DATE rather than by day offset, which is the whole point: two
+// rows that peaked on the same day are then being compared on the same dates. The
+// values are held on a dense span so a pair can be walked in one pass.
+export function residualSeries(event) {
+  const days = []
+  for (let d = CAST_FROM; d <= CAST_TO; d++) {
+    const v = event.series[d]
+    if (v !== undefined && v > 0) days.push(d)
+  }
+  if (days.length < CAST_MIN_DAYS) return null
+  const lg = new Map()
+  for (const d of days) lg.set(d, Math.log(event.series[d]))
+  const n = CAST_TO - CAST_FROM + 1
+  const values = new Float64Array(n)
+  const present = new Uint8Array(n)
+  let kept = 0
+  for (const d of days) {
+    const w = []
+    for (let e = d - CAST_HALF; e <= d + CAST_HALF; e++) if (lg.has(e)) w.push(lg.get(e))
+    if (w.length < CAST_WINDOW_MIN) continue
+    values[d - CAST_FROM] = lg.get(d) - median(w)
+    present[d - CAST_FROM] = 1
+    kept++
+  }
+  return { article: event.article, date: event.date, start: epochDay(event.date) + CAST_FROM, n, values, present, kept }
+}
+
+// Every calendar date both rows were read on, with one row optionally shifted.
+export function sharedDays(a, b, lag = 0) {
+  const lo = Math.max(a.start + lag, b.start)
+  const hi = Math.min(a.start + lag + a.n, b.start + b.n)
+  const out = []
+  for (let t = lo; t < hi; t++) {
+    const i = t - a.start - lag, j = t - b.start
+    if (!a.present[i] || !b.present[j]) continue
+    out.push([t, a.values[i], b.values[j]])
+  }
+  return out
+}
+
+export function correlate(a, b, lag = 0, sharedMin = CAST_SHARED_MIN) {
+  const lo = Math.max(a.start + lag, b.start)
+  const hi = Math.min(a.start + lag + a.n, b.start + b.n)
+  let n = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0
+  for (let t = lo; t < hi; t++) {
+    const i = t - a.start - lag, j = t - b.start
+    if (!a.present[i] || !b.present[j]) continue
+    const x = a.values[i], y = b.values[j]
+    n++; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y
+  }
+  if (n < sharedMin) return null
+  const cov = sxy - (sx * sy) / n
+  const vx = sxx - (sx * sx) / n
+  const vy = syy - (sy * sy) / n
+  if (vx <= 0 || vy <= 0) return null
+  return { r: cov / Math.sqrt(vx * vy), n }
+}
+
+// A correlation is not a quantity anyone reads in. This is: take the days one page
+// was read most unusually, and report where its partner sat on exactly those days,
+// as a multiple of the partner's own 29-day level.
+export function partnerLift(a, b, q = CAST_TOP_SHARE, sharedMin = CAST_SHARED_MIN) {
+  const days = sharedDays(a, b)
+  if (days.length < sharedMin) return null
+  const k = Math.max(5, Math.round(q * days.length))
+  const top = days.slice().sort((x, y) => y[1] - x[1]).slice(0, k)
+  return { k, shared: days.length, lift: Math.exp(median(top.map((d) => d[2]))) }
+}
+
+// Days from the peak to the first day the page is back at 1.5 times its own
+// baseline. RETURN_LEVEL is the same 1.5 the anniversary section uses.
+export function returnDay(event, level = RETURN_LEVEL) {
+  if (!event.base) return null
+  return dayItFellTo(event.series, event.base * level)
+}
+
+// --- the nulls --------------------------------------------------------------
+//
+// xorshift32, so a run of this file reproduces the same draws on any machine. The
+// null redraws every row's peak date inside its own year and month AND on the same
+// weekday, which holds both the shape of the record over time and the Monday skew
+// fixed, then asks how many rows land on a date some other row also landed on.
+export function xorshift(seed) {
+  let s = (seed >>> 0) || 1
+  return () => {
+    s ^= s << 13; s >>>= 0
+    s ^= s >> 17
+    s ^= s << 5; s >>>= 0
+    return s / 4294967296
+  }
+}
+
+function sameWeekdaySlots(iso) {
+  const d = new Date(iso + 'T00:00:00Z')
+  const y = d.getUTCFullYear(), m = d.getUTCMonth(), w = d.getUTCDay()
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate()
+  const out = []
+  for (let k = 1; k <= last; k++) if (new Date(Date.UTC(y, m, k)).getUTCDay() === w) out.push(y * 10000 + m * 100 + k)
+  return out
+}
+
+// tags marks a subset of the rows (the months under test); the null reports both the
+// whole count and the tagged count so one draw serves both questions.
+export function sameDayNull(dates, tags, observed, observedTagged, draws = NULL_DRAWS, seed = NULL_SEED) {
+  const rand = xorshift(seed)
+  const slots = dates.map(sameWeekdaySlots)
+  let total = 0, totalTagged = 0, atLeast = 0, atMost = 0
+  for (let t = 0; t < draws; t++) {
+    const seen = new Map()
+    for (let i = 0; i < slots.length; i++) {
+      const key = slots[i][Math.floor(rand() * slots[i].length)]
+      if (!seen.has(key)) seen.set(key, [])
+      seen.get(key).push(i)
+    }
+    let n = 0, tagged = 0
+    for (const v of seen.values()) {
+      if (v.length < 2) continue
+      n += v.length
+      for (const i of v) if (tags[i]) tagged++
+    }
+    total += n
+    totalTagged += tagged
+    if (n >= observed) atLeast++
+    if (tagged >= observedTagged) atMost++
+  }
+  return {
+    draws,
+    expected: +(total / draws).toFixed(1),
+    expectedShare: +((100 * total) / draws / dates.length).toFixed(1),
+    p: (atLeast + 1) / (draws + 1),
+    expectedTagged: +(totalTagged / draws).toFixed(1),
+    pTagged: (atMost + 1) / (draws + 1),
+  }
+}
+
+// Resamples the observed pair distribution to ask how often k pairs drawn from it
+// reach the same-day median. Lower is the tail for the return-day statistic, where
+// a small number is the strong result.
+export function permuteMedian(pool, k, observed, lower = false, draws = NULL_DRAWS, seed = NULL_SEED + 1) {
+  const rand = xorshift(seed)
+  let hits = 0
+  const s = new Array(k)
+  for (let t = 0; t < draws; t++) {
+    for (let i = 0; i < k; i++) s[i] = pool[Math.floor(rand() * pool.length)]
+    const m = median(s)
+    if (lower ? m <= observed : m >= observed) hits++
+  }
+  return { draws, p: (hits + 1) / (draws + 1) }
+}
+
+// A page's title is not evidence. This drops any same-day pair whose two titles
+// share a word, so a cast cannot be a subject counted twice. Bare years and the
+// handful of words every American political title carries are stoplisted, because
+// they are furniture rather than a subject.
+export const TITLE_STOP = new Set(['the', 'of', 'and', 'in', 'a', 'united', 'states'])
+export function titleTokens(article) {
+  return new Set(
+    article.toLowerCase().replace(/[(),]/g, ' ').split(/[\s_]+/)
+      .filter((w) => w && !TITLE_STOP.has(w) && !/^\d{4}$/.test(w))
+  )
+}
+export function sharedToken(a, b) {
+  const A = titleTokens(a), B = titleTokens(b)
+  for (const w of A) if (B.has(w)) return w
+  return null
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+// The three months the casts land in, named here so the count and the null test the
+// same set. No claim is made about why.
+export const CAST_MONTHS = [1, 2, 10]
+
+export function cast(events) {
+  const monthOf = (iso) => +iso.slice(5, 7) - 1
+  const machine = events.filter((e) => e.machine)
+  const machineNames = new Set(machine.map((e) => e.article))
+
+  // --- part A, the groups -------------------------------------------------
+  const byDate = new Map()
+  for (const e of events) {
+    if (!byDate.has(e.date)) byDate.set(e.date, [])
+    byDate.get(e.date).push(e)
+  }
+  const groups = [...byDate.entries()]
+    .filter(([, g]) => g.length > 1)
+    .map(([date, g]) => ({ date, pages: g.slice().sort((a, b) => b.peak - a.peak) }))
+    .sort((a, b) => b.pages.length - a.pages.length || a.date.localeCompare(b.date))
+  const member = new Set(groups.flatMap((g) => g.pages.map((e) => e.article)))
+  const sizes = {}
+  for (const g of groups) sizes[g.pages.length] = (sizes[g.pages.length] || 0) + 1
+
+  const dates = events.map((e) => e.date)
+  const tags = events.map((e) => CAST_MONTHS.includes(monthOf(e.date)))
+  const inMonths = events.filter((e) => member.has(e.article) && CAST_MONTHS.includes(monthOf(e.date))).length
+  const groupNull = sameDayNull(dates, tags, member.size, inMonths)
+
+  const months = MONTHS.map((label, m) => {
+    const all = events.filter((e) => monthOf(e.date) === m)
+    const inCast = all.filter((e) => member.has(e.article))
+    return { month: m + 1, label, n: all.length, inCast: inCast.length, share: all.length ? +((100 * inCast.length) / all.length).toFixed(1) : null }
+  })
+
+  // --- part B, the bond ---------------------------------------------------
+  const usable = events
+    .filter((e) => !e.renamed && !e.machine)
+    .map(residualSeries)
+    .filter(Boolean)
+  const byArticle = new Map(usable.map((s) => [s.article, s]))
+  const gapOf = (a, b) => Math.abs(epochDay(a.date) - epochDay(b.date))
+
+  const same = [], near = [], far = []
+  for (let i = 0; i < usable.length; i++) {
+    for (let j = i + 1; j < usable.length; j++) {
+      const c = correlate(usable[i], usable[j])
+      if (!c) continue
+      const gap = gapOf(usable[i], usable[j])
+      const row = { a: usable[i].article, b: usable[j].article, date: usable[i].date, gap, r: c.r, days: c.n }
+      if (gap === 0) same.push(row)
+      else if (gap <= CAST_NEAR) near.push(row)
+      else far.push(row)
+    }
+  }
+  const farRs = far.map((p) => p.r).sort((x, y) => x - y)
+  const p95 = farRs[Math.floor(0.95 * farRs.length)]
+  const bucket = (set) => ({ n: set.length, median: +median(set.map((p) => p.r)).toFixed(3) })
+  const farLong = far.filter((p) => p.days >= 250)
+
+  // The same pass again with the machine row left in, so the one figure the premise
+  // file quotes differently can be checked rather than taken on trust.
+  const withMachine = events.filter((e) => !e.renamed).map(residualSeries).filter(Boolean)
+  const farWith = []
+  for (let i = 0; i < withMachine.length; i++) {
+    for (let j = i + 1; j < withMachine.length; j++) {
+      if (gapOf(withMachine[i], withMachine[j]) <= CAST_NEAR) continue
+      const c = correlate(withMachine[i], withMachine[j])
+      if (c) farWith.push(c.r)
+    }
+  }
+
+  const permutation = permuteMedian(
+    [...same, ...near, ...far].map((p) => p.r), same.length, median(same.map((p) => p.r))
+  )
+
+  const dropped = same.filter((p) => sharedToken(p.a, p.b))
+  const cleanPairs = same.filter((p) => !sharedToken(p.a, p.b))
+
+  const lag = []
+  for (let k = -CAST_LAGS; k <= CAST_LAGS; k++) {
+    const rs = []
+    for (const p of same) {
+      const c = correlate(byArticle.get(p.a), byArticle.get(p.b), k)
+      if (c) rs.push(c.r)
+    }
+    lag.push({ lag: k, n: rs.length, median: +median(rs).toFixed(3), values: rs.map((v) => +v.toFixed(3)) })
+  }
+
+  // Quarters of the year after the peak, each run on its own residuals so the
+  // window is never asked to carry a length it does not have.
+  const quarters = [[30, 107], [108, 185], [186, 263], [264, 340]].map(([from, to]) => {
+    const span = to - from + 1
+    const minDays = Math.round(span * 0.83)
+    const sharedMin = Math.round(span * 0.58)
+    const rows = events.filter((e) => !e.renamed && !e.machine)
+      .map((e) => residualSpan(e, from, to, minDays)).filter(Boolean)
+    const s = [], f = []
+    for (let i = 0; i < rows.length; i++) {
+      for (let j = i + 1; j < rows.length; j++) {
+        const c = correlate(rows[i], rows[j], 0, sharedMin)
+        if (!c) continue
+        const g = gapOf(rows[i], rows[j])
+        if (g === 0) s.push(c.r)
+        else if (g > CAST_NEAR) f.push(c.r)
+      }
+    }
+    return { from, to, same: { n: s.length, median: +median(s).toFixed(3) }, far: { n: f.length, median: +median(f).toFixed(3) } }
+  })
+
+  // Per constellation: every pair inside it, and each page's median tie to the rest
+  // of the field, which is the control drawn beside the cast rather than argued.
+  const constellations = groups.map((g) => {
+    const mem = g.pages.filter((e) => byArticle.has(e.article))
+    const edges = []
+    for (let i = 0; i < mem.length; i++) {
+      for (let j = i + 1; j < mem.length; j++) {
+        const c = correlate(byArticle.get(mem[i].article), byArticle.get(mem[j].article))
+        if (!c) continue
+        const ab = partnerLift(byArticle.get(mem[i].article), byArticle.get(mem[j].article))
+        const ba = partnerLift(byArticle.get(mem[j].article), byArticle.get(mem[i].article))
+        edges.push({
+          a: mem[i].article, b: mem[j].article, r: +c.r.toFixed(3), raw: c.r, days: c.n,
+          lift: ab ? +ab.lift.toFixed(3) : null, mirror: ba ? +ba.lift.toFixed(3) : null,
+          token: sharedToken(mem[i].article, mem[j].article),
+        })
+      }
+    }
+    const combined = g.pages.reduce((a, e) => a + e.peak, 0)
+    // The median and the spread are taken before the edges are rounded for print, so
+    // recomputing either from the raw file lands on the same number.
+    const raw = edges.map((e) => e.raw)
+    for (const e of edges) delete e.raw
+    return {
+      date: g.date,
+      n: g.pages.length,
+      measured: mem.length,
+      median: raw.length ? +median(raw).toFixed(3) : null,
+      spread: raw.length > 1 ? +(Math.max(...raw) - Math.min(...raw)).toFixed(3) : null,
+      combined,
+      leadShare: +((100 * g.pages[0].peak) / combined).toFixed(1),
+      pages: g.pages.map((e) => ({
+        article: e.article, peak: e.peak, base: e.base, lead: e.lead, kind: leadClass(e.lead),
+        renamed: e.renamed, machine: Boolean(e.machine), measured: byArticle.has(e.article),
+        elsewhere: byArticle.has(e.article)
+          ? +median(usable.filter((o) => o.date !== e.date).map((o) => correlate(byArticle.get(e.article), o)).filter(Boolean).map((c) => c.r)).toFixed(3)
+          : null,
+      })),
+      edges,
+    }
+  })
+
+  const bySize = [2, 3, 4].map((n) => {
+    const es = constellations.filter((c) => c.n === n).flatMap((c) => c.edges)
+    return { size: n, pairs: es.length, median: es.length ? +median(es.map((e) => e.r)).toFixed(3) : null }
+  })
+
+  // --- the two kinds of record day ---------------------------------------
+  const castRows = events.filter((e) => member.has(e.article))
+  const soloRows = events.filter((e) => !member.has(e.article))
+  const known = (set) => set.filter((e) => e.base >= KNOWN_FLOOR)
+  const fameOf = (set, label) => ({
+    label, n: set.length,
+    base: Math.round(median(set.map((e) => e.base))),
+    peak: Math.round(median(set.map((e) => e.peak))),
+    lift: +median(known(set).map((e) => e.peak / e.base)).toFixed(0),
+    underFloor: set.filter((e) => e.base < KNOWN_FLOOR).length,
+  })
+  const fame = {
+    floor: KNOWN_FLOOR,
+    cast: fameOf(castRows, 'shares its record day'),
+    solo: fameOf(soloRows, 'has it alone'),
+    test: mannWhitney(known(castRows).map((e) => e.base), known(soloRows).map((e) => e.base)),
+  }
+  // Every row, so a mark can draw the two groups as themselves.
+  fame.points = events.map((e) => ({
+    article: e.article, date: e.date, base: e.base, peak: e.peak,
+    cast: member.has(e.article) ? 1 : 0,
+  }))
+  fame.baseRatio = +(fame.cast.base / fame.solo.base).toFixed(1)
+  fame.peakGap = +(100 * Math.abs(fame.cast.peak - fame.solo.peak) / fame.solo.peak).toFixed(1)
+
+  // --- they come down together -------------------------------------------
+  const backPool = events.filter((e) => !e.renamed && !e.machine).map((e) => ({ e, day: returnDay(e) })).filter((x) => x.day !== null)
+  const backBuckets = { same: [], near: [], far: [] }
+  for (let i = 0; i < backPool.length; i++) {
+    for (let j = i + 1; j < backPool.length; j++) {
+      const g = Math.abs(epochDay(backPool[i].e.date) - epochDay(backPool[j].e.date))
+      const d = Math.abs(backPool[i].day - backPool[j].day)
+      if (g === 0) backBuckets.same.push(d)
+      else if (g <= CAST_NEAR) backBuckets.near.push(d)
+      else backBuckets.far.push(d)
+    }
+  }
+  const backStat = (set) => ({ n: set.length, median: median(set), withinThree: +((100 * set.filter((d) => d <= 3).length) / set.length).toFixed(1) })
+  const back = {
+    level: RETURN_LEVEL,
+    same: backStat(backBuckets.same), near: backStat(backBuckets.near), far: backStat(backBuckets.far),
+    permutation: permuteMedian(
+      [...backBuckets.same, ...backBuckets.near, ...backBuckets.far], backBuckets.same.length,
+      median(backBuckets.same), true
+    ),
+    rows: groups.map((g) => ({
+      date: g.date,
+      pages: g.pages.map((e) => ({ article: e.article, day: e.renamed || e.machine ? null : returnDay(e) })),
+    })),
+  }
+
+  // --- the run-up matches too ---------------------------------------------
+  const led = events.filter((e) => e.lead !== null)
+  let sSame = 0, sTot = 0, fSame = 0, fTot = 0
+  const sDiff = [], fDiff = []
+  for (let i = 0; i < led.length; i++) {
+    for (let j = i + 1; j < led.length; j++) {
+      const g = Math.abs(epochDay(led[i].date) - epochDay(led[j].date))
+      const d = Math.abs(led[i].lead - led[j].lead)
+      if (g === 0) { sTot++; if (d === 0) sSame++; sDiff.push(d) }
+      else if (g > CAST_NEAR) { fTot++; if (d === 0) fSame++; fDiff.push(d) }
+    }
+  }
+  const runup = {
+    same: { n: sTot, identical: sSame, share: +((100 * sSame) / sTot).toFixed(1), median: median(sDiff) },
+    far: { n: fTot, identical: fSame, share: +((100 * fSame) / fTot).toFixed(1), median: median(fDiff) },
+    test: chiSquare2x2(sSame, sTot - sSame, fSame, fTot - fSame),
+  }
+
+  // --- how big are the wiggles being correlated ---------------------------
+  const amplitude = median(usable.map((s) => {
+    const v = []
+    for (let i = 0; i < s.n; i++) if (s.present[i]) v.push(Math.abs(s.values[i]))
+    return median(v)
+  }))
+  const level = median(events.filter((e) => !e.renamed && !e.machine).map((e) => median(daysIn(e.series, 250, 340))).filter((v) => v !== null))
+
+  return {
+    definitions: {
+      from: CAST_FROM, to: CAST_TO, minDays: CAST_MIN_DAYS, half: CAST_HALF,
+      windowMin: CAST_WINDOW_MIN, sharedMin: CAST_SHARED_MIN, near: CAST_NEAR,
+      topShare: CAST_TOP_SHARE, returnLevel: RETURN_LEVEL, floor: KNOWN_FLOOR,
+      machine: { at: MACHINE_AT, around: MACHINE_AROUND, from: MACHINE_FROM, to: MACHINE_TO },
+      months: CAST_MONTHS.map((m) => MONTHS[m]),
+      total: events.length,
+    },
+    machine: {
+      n: machine.length,
+      found: machine.map((e) => ({ article: e.article, date: e.date, peak: e.peak, ...e.machine })),
+    },
+    groups: {
+      total: events.length, inCast: member.size,
+      share: +((100 * member.size) / events.length).toFixed(1),
+      casts: groups.length, sizes,
+      null: groupNull,
+      months, inMonths,
+      monthShare: +((100 * inMonths) / events.filter((e) => CAST_MONTHS.includes(monthOf(e.date))).length).toFixed(1),
+      quietMonths: MONTHS.filter((_, m) => !events.some((e) => monthOf(e.date) === m && member.has(e.article))),
+      quietMonthRows: events.filter((e) => !events.some((o) => monthOf(o.date) === monthOf(e.date) && member.has(o.article))).length,
+    },
+    bond: {
+      rows: usable.length, dropped: { renamed: events.filter((e) => e.renamed).length, machine: machine.length },
+      same: bucket(same), near: bucket(near), far: bucket(far), farLong: bucket(farLong),
+      p05: +farRs[Math.floor(0.05 * farRs.length)].toFixed(3),
+      p95: +p95.toFixed(3),
+      aboveP95: same.filter((p) => p.r > p95).length,
+      permutation,
+      withMachine: { rows: withMachine.length, far: { n: farWith.length, median: +median(farWith).toFixed(3) } },
+      tokens: { kept: cleanPairs.length, median: +median(cleanPairs.map((p) => p.r)).toFixed(3), dropped: dropped.map((p) => ({ a: p.a, b: p.b, token: sharedToken(p.a, p.b), r: +p.r.toFixed(3) })) },
+      lag, quarters, bySize,
+      amplitude: +amplitude.toFixed(3),
+      swing: +((Math.exp(amplitude) - 1) * 100).toFixed(1),
+      level: Math.round(level),
+      histogram: histogram(far.map((p) => p.r), -0.4, 1, 0.05),
+      nearHistogram: histogram(near.map((p) => p.r), -0.4, 1, 0.05),
+      // Every control pair, so a mark can draw the controls as themselves rather
+      // than as a summary of themselves.
+      farValues: far.map((p) => +p.r.toFixed(3)).sort((a, b) => a - b),
+      nearValues: near.map((p) => +p.r.toFixed(3)).sort((a, b) => a - b),
+      pairs: same.slice().sort((a, b) => b.r - a.r).map((p) => ({ date: p.date, a: p.a, b: p.b, r: +p.r.toFixed(3), days: p.days })),
+    },
+    constellations,
+    fame,
+    back,
+    runup,
+  }
+}
+
+// The residual series over an arbitrary span, used by the quarter split.
+export function residualSpan(event, from, to, minDays) {
+  const days = []
+  for (let d = from; d <= to; d++) {
+    const v = event.series[d]
+    if (v !== undefined && v > 0) days.push(d)
+  }
+  if (days.length < minDays) return null
+  const lg = new Map()
+  for (const d of days) lg.set(d, Math.log(event.series[d]))
+  const n = to - from + 1
+  const values = new Float64Array(n)
+  const present = new Uint8Array(n)
+  for (const d of days) {
+    const w = []
+    for (let e = d - CAST_HALF; e <= d + CAST_HALF; e++) if (lg.has(e)) w.push(lg.get(e))
+    if (w.length < CAST_WINDOW_MIN) continue
+    values[d - from] = lg.get(d) - median(w)
+    present[d - from] = 1
+  }
+  return { article: event.article, date: event.date, start: epochDay(event.date) + from, n, values, present }
+}
+
+export function histogram(xs, lo, hi, step) {
+  const bins = []
+  for (let b = lo; b < hi - 1e-9; b += step) bins.push({ from: +b.toFixed(2), to: +(b + step).toFixed(2), n: 0 })
+  for (const x of xs) {
+    const i = Math.min(bins.length - 1, Math.max(0, Math.floor((x - lo) / step)))
+    bins[i].n++
+  }
+  return bins
+}
+
+// 2x2 with the Yates correction, and the normal tail for the p, so the run-up claim
+// carries a computed number like every other claim here.
+export function chiSquare2x2(a, b, c, d) {
+  const n = a + b + c + d
+  const chi = (n * (Math.abs(a * d - b * c) - n / 2) ** 2) / ((a + b) * (c + d) * (a + c) * (b + d))
+  const z = Math.sqrt(chi)
+  const t = 1 / (1 + (0.3275911 * z) / Math.SQRT2)
+  const erf = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-(z * z) / 2)
+  return { chi2: +chi.toFixed(2), df: 1, p: 1 - erf }
+}
+
 export function findings(events) {
   const after = events.filter((e) => !e.renamed)
   const half = events.map((e) => e.toHalf).filter(Boolean)
@@ -471,6 +1040,7 @@ export function findings(events) {
 
   return {
     anniversary: anniversary(events),
+    cast: cast(events),
     persistence: persistence(events),
     trend: { early: { n: early.length, median: median(early) }, late: { n: late.length, median: median(late) }, test: mannWhitney(early, late) },
     top: events.slice(0, 12).map(named),
