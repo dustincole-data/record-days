@@ -374,3 +374,91 @@ premise still compile locally; delete them in the same commit that deletes those
 
 `.claude/plans/` still holds the two dead-premise documents. Gate 2 wants one plan file per
 project; they were left untouched by instruction.
+
+---
+
+# DEEPEN — 2026-08-29
+
+Step 6. No new finding built and none killed; the ledger above is unchanged.
+**Converted: 9 of 12.** Findings 8 (run-up), 9 (Feb/Mar/Nov) and 12 (scale) are still
+open and were out of this session's scope by instruction, not by a ruling.
+
+## The method that found the work
+
+Each of the five sheets was screenshotted **alone**, cropped to its own `.mark-box` with
+no surrounding copy, at 1440 and at 390, and read cold. A sheet whose finding could not be
+named from the picture was not done.
+
+| Sheet | Cold read before |
+|---|---|
+| hero | nameable, but the band note said "the middle 90% of **them**" on the line that reads "the same date", attributing the stranger band to the same-day pairs. Below 1000px the note was dropped entirely, so on a phone the band was unexplained. Nothing said what a row was. |
+| fame | **failed.** Nothing said a dot was a page. The vertical rule through each row was unlabelled, so the number over it, `30,107`, named no quantity. |
+| back | nameable from the rows; a dot was unlabelled and nothing tied the footer bars to the day ruler at the top of the sheet. |
+| lag | the curve was nameable, but the pale band it falls back into was drawn with **no label at either width**, and the whole claim rests on that band. |
+
+## What each sheet now says on itself
+
+One vocabulary, shared: `bandNote(c)` in `src/lib/marks/lib.js` is the single sentence for
+the pale band, so the hero and the lag sheet name the same region the same way.
+
+- **hero** — the line above the rows reads `one row is one record day, 19 groups, 30 pairs`.
+  The legend runs to four cells: A DISC IS A PAGE, THE GAP IS HOW FAR APART THEY STAYED,
+  **THE PALE BAND** (the band drawn with its two dashed edges, captioned with the middle
+  90% and the two percentiles it runs between), and THE TWO TICK FIELDS, whose caption now
+  opens `one tick is one pair`. Four columns wide, two at 820, one on a phone.
+- **fame** — `one dot is one page` under each panel head, and the median rule labels itself
+  `half at 30,107` rather than printing a bare number over an unnamed line.
+- **back** — `one row is one record day, one dot is one page, the bar spans the days between
+  them`, and under the footer heading, `each bar starts at day zero on the ruler at the top
+  of this sheet`, which is the shared scale stated on the sheet that uses it.
+- **lag** — `one dot is one pair. the pale band is the middle 90% of the pairs that shared
+  no date`.
+
+## Two collisions fixed on the way
+
+- The hero's row header was drawn at the y the band started at, so `19 groups` had the
+  band's dashed left edge through it. `bandTop` moved from `rowsTop - 24` to `rowsTop - 12`
+  and the header line gained 6px of clearance.
+- A legend cell placed its figure directly under its own head. With four cells one head
+  wraps to two lines and that cell dropped 17px out of step with its neighbours. A legend
+  line now sets one figure baseline and one caption baseline from the tallest head in that
+  line; a folded column is a line of one and inherits nothing, which is the property the
+  original note was protecting.
+
+## The words
+
+**Fourteen sentences and 210 words off the page**, 27% of the section prose (789 to 579
+words, 50 to 36 sentences; method and colophon untouched and out of scope). Whole blocks
+deleted, not trimmed:
+
+- the **fame standfirst**, whole. All three of its figures (30,107 · 3,947 · 2,095,287
+  against 2,092,734) are printed on the two panels it sat above.
+- the **lag standfirst**, whole. Its two medians are the sheet's own right-hand column and
+  its last clause is the band, which the sheet now names.
+- the masthead's second standfirst sentence, the two control medians in the first claim
+  line, "They are the bottom of the sheet and they stay on it", the pale-band note's first
+  sentence, the back standfirst's first two sentences, and the back note's first two
+  sentences, which read out `42 days apart` and `31 days apart` against the two names the
+  sheet already prints them beside.
+- "The bar is the median of each row" went with them: after the fame relabel it named a
+  mark that is a rule, not a bar, and the rule now names itself.
+
+Every figure removed from the prose is still on the page, inside the graphic that earns it.
+Nothing was paid for with type size: every new line is drawn at the sheet's own `size`,
+14px desktop and 13px phone.
+
+## Verification
+
+`npm test` 236 pass. `npm run gate` **AUDIT CLEAN** at 1440 / 820 / 390 / 320, zero under
+gate, zero off-canvas, zero clipped, no page h-scroll, Archivo loaded at all four.
+`npm run shots` no horizontal scroll at six widths. `npm run interact` all pass, including
+every sheet redrawn at the width its box actually has. Commit `9e7302b`, deployed and
+verified on the project url `https://the-cast-smoky.vercel.app`.
+
+`cast.dustincoledata.com` still returns **NXDOMAIN**: the Namecheap CNAME
+(`cast` to `500ee42d8a2b91db.vercel-dns-017.com`) has not been added. Verification was done
+on the vercel.app project url instead.
+
+`dataset.json` untouched. `public/og/cast.png` untouched and still 79,587 bytes; the card is
+a standalone composition and carries none of the cut copy. The seven untracked files from
+the dead anniversary premise were left exactly as found.
