@@ -4,3 +4,6 @@ dist/
 .vercel/
 __pycache__/
 public/og/*.svg
+
+.vercel
+.env*
