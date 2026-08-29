@@ -14,7 +14,7 @@
 // width, because a three-column row on a phone is a squeezed poster and not a page.
 import {
   text, line, circle, rect, path, band, ramp, stress, title, clamp,
-  wrapList, wrapWords, advance, tieScale, tieTicks, rng, svg,
+  wrapList, wrapWords, advance, tieScale, tieTicks, rng, svg, bandNote,
   INK, RULE, ALONE, NEAR, WHITE,
 } from './lib.js'
 
@@ -107,22 +107,18 @@ export function hero(c, W, env = {}) {
   // --- the header over the rows --------------------------------------------
   out.push(line(pad, y, W - pad, y, { stroke: RULE, width: 1 }))
   y += 18 + size
-  const groupLine = c.groups.casts + ' groups, ' + c.bond.same.n + ' pairs'
+  // What a row is, said where the rows begin. The date in the gutter and the titles in
+  // the margin are one record day, and nothing else on the sheet says so.
+  const groupLine = 'one row is one record day, ' + c.groups.casts + ' groups, ' + c.bond.same.n + ' pairs'
   if (side) {
     out.push(text(plotL - 14, y, 'the same date', { size, anchor: 'end', fill: INK, opacity: 0.72 }))
     out.push(text(plotL, y, groupLine, { size, fill: INK, opacity: 0.55 }))
+    y += 20
   } else {
-    out.push(text(plotL, y, 'the same date, ' + groupLine, { size, fill: INK, opacity: 0.72 }))
+    const head = wrapWords('the same date, ' + groupLine, plotW, size, measure)
+    head.forEach((s2, i) => out.push(text(plotL, y + i * L.lead, s2, { size, fill: INK, opacity: 0.72 })))
+    y += 14 + (head.length - 1) * L.lead
   }
-  // What the pale band is, said on the band itself where there is room for it. The
-  // sentence it abbreviates is carried in the caption under the sheet either way.
-  const bandNote = 'the middle ' + c.bond.band + '% of them'
-  const noteW = measure(bandNote, size)
-  const bandFits = noteW < x(c.bond.p95) - x(c.bond.p05) - 10
-  const rightFits = noteW < plotR - x(c.bond.p95) - 10
-  if (bandFits) out.push(text(x(c.bond.p95) - 6, y, bandNote, { size, anchor: 'end', fill: INK, opacity: 0.55 }))
-  else if (rightFits) out.push(text(x(c.bond.p95) + 6, y, bandNote, { size, fill: INK, opacity: 0.55 }))
-  y += 14
 
   // --- lay the rows out ----------------------------------------------------
   const rows = measured.map((k) => {
@@ -141,12 +137,12 @@ export function hero(c, W, env = {}) {
   const rowsBottom = cursor
 
   // The region a pair with no relationship occupies, carried down the whole sheet.
-  const bandTop = side ? rowsTop - 24 : rowsTop - 6
+  const bandTop = side ? rowsTop - 12 : rowsTop - 6
   out.push(rect(x(c.bond.p05), bandTop, x(c.bond.p95) - x(c.bond.p05), rowsBottom + 16 - bandTop,
     { fill: ALONE, opacity: 0.1 }))
   const edges = [c.bond.p05, c.bond.p95]
   if (side) {
-    for (const e of edges) out.push(line(x(e), rowsTop - 24, x(e), rowsBottom + 16, { stroke: INK, width: 1, dash: '2 4', opacity: 0.42 }))
+    for (const e of edges) out.push(line(x(e), bandTop, x(e), rowsBottom + 16, { stroke: INK, width: 1, dash: '2 4', opacity: 0.42 }))
   } else {
     // Stacked, the page names sit over the band, so the two edges are drawn only
     // across each row's own figure strip rather than through its label.
@@ -226,13 +222,14 @@ export function hero(c, W, env = {}) {
 
   // --- legend ---------------------------------------------------------------
   //
-  // Three cells, laid into three, two or one column by the room there is. Each one
-  // states its own figure height, so a column that folds does not inherit the tallest
-  // cell's spacing and leave a hole under the small one.
+  // Four cells, laid into four, two or one column by the room there is. Inside a line the
+  // figures start on one baseline and the captions on another, so a head that wraps does
+  // not drop its own cell out of step with its neighbours; a folded column is a line of
+  // one and inherits nothing.
   y += 16
   out.push(line(pad, y, W - pad, y, { stroke: RULE, width: 1 }))
   y += 16
-  const cols = W >= 1180 ? 3 : W >= 760 ? 2 : 1
+  const cols = W >= 1180 ? 4 : W >= 760 ? 2 : 1
   const colW = (W - 2 * pad - (cols - 1) * 28) / cols
   const big = c.constellations.flatMap((k) => k.pages).sort((a, b) => b.peak - a.peak)[0]
   const small = c.constellations.flatMap((k) => k.pages).sort((a, b) => a.peak - b.peak)[0]
@@ -268,40 +265,53 @@ export function hero(c, W, env = {}) {
       caption: 'left, still moving together; right, moving apart',
     },
     {
-      head: 'THE TWO CONTROLS',
+      head: 'THE PALE BAND',
+      figH: 46,
+      draw: (cx0, cy0, w) => {
+        const lsc = tieScale(cx0, cx0 + w)
+        const l0 = Math.max(cx0, lsc(c.bond.p05)), r0 = Math.min(cx0 + w, lsc(c.bond.p95))
+        return rect(l0, cy0, r0 - l0, 46, { fill: ALONE, opacity: 0.1 }) +
+          [l0, r0].map((e) => line(e, cy0, e, cy0 + 46, { stroke: INK, width: 1, dash: '2 4', opacity: 0.42 })).join('')
+      },
+      caption: 'where ' + bandNote(c) + ' sit, ' + c.bond.p05 + ' to ' + c.bond.p95,
+    },
+    {
+      head: 'THE TWO TICK FIELDS',
       figH: 46,
       draw: (cx0, cy0, w) => {
         const lsc = tieScale(cx0, cx0 + w)
         return ticks(c.bond.farValues.filter((_, i2) => i2 % 3 === 0), cy0, 20, ALONE, lsc, cx0, cx0 + w) +
           ticks(c.bond.nearValues, cy0 + 26, 16, NEAR, lsc, cx0, cx0 + w)
       },
-      caption: 'no shared date, half at ' + c.bond.far.median + '; within a fortnight, half at ' + c.bond.near.median,
+      caption: 'one tick is one pair. no shared date, half at ' + c.bond.far.median +
+        '; within a fortnight, half at ' + c.bond.near.median,
     },
   ]
   for (const cl of cells) {
     cl.headLines = wrapWords(cl.head, colW, size, measure, 600, 0.9)
     cl.capLines = wrapList([cl.caption], colW, size, measure)
-    cl.h = cl.headLines.length * L.lead + 10 + cl.figH + 12 + cl.capLines.length * L.lead
   }
   let bandY = y
   for (let i = 0; i < cells.length; i += cols) {
     const line0 = cells.slice(i, i + cols)
-    const h = Math.max(...line0.map((cl) => cl.h))
+    const heads = Math.max(...line0.map((cl) => cl.headLines.length))
+    const figs = Math.max(...line0.map((cl) => cl.figH))
+    const figTop = bandY + heads * L.lead + 10
+    const capTop = figTop + figs + 12 + size
     line0.forEach((cl, j) => {
       const cx0 = pad + j * (colW + 28)
       cl.headLines.forEach((t, k) => out.push(text(cx0, bandY + size + k * L.lead, t, { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 })))
-      out.push(cl.draw(cx0, bandY + cl.headLines.length * L.lead + 10, colW))
-      const capTop = bandY + cl.headLines.length * L.lead + 10 + cl.figH + 12 + size
+      out.push(cl.draw(cx0, figTop, colW))
       cl.capLines.forEach((t, k) => out.push(text(cx0, capTop + k * L.lead, t, { size, fill: INK, opacity: 0.6 })))
     })
-    bandY += h + 24
+    bandY = capTop + Math.max(...line0.map((cl) => cl.capLines.length)) * L.lead + 14
   }
   y = bandY
 
   const label = c.groups.inCast + ' of the ' + c.groups.total + ' biggest reading days in the record are shared by two, three or four pages, in ' +
     c.groups.casts + ' groups. Each group is drawn on a ruler of how closely its pages moved for the year after; half the same-day pairs sit at ' +
     c.bond.same.median + ' against ' + c.bond.far.median + ' for pairs that shared no date.'
-  return { width: W, height: Math.ceil(y), body: out.join(''), label, layout: L, bandNoteShown: bandFits || rightFits }
+  return { width: W, height: Math.ceil(y), body: out.join(''), label, layout: L }
 }
 
 export const heroSvg = (c, W, env) => {

@@ -56,7 +56,10 @@ export function back(c, W, env = {}) {
   const cap = wrapWords('DAYS UNTIL THE PAGE IS BACK AT ' + b.level + ' TIMES ITS OWN ORDINARY READING',
     plotW, size, measure, 600, 0.9)
   cap.forEach((s, i) => out.push(text(plotL, y + i * L.lead, s, { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 })))
-  y += 14 + size + (cap.length - 1) * L.lead
+  y += size + (cap.length - 1) * L.lead + 6
+  const what = wrapWords('one row is one record day, one dot is one page, the bar spans the days between them', plotW, size, measure)
+  what.forEach((s2, i) => out.push(text(plotL, y + size + i * L.lead, s2, { size, fill: INK, opacity: 0.55 })))
+  y += 8 + what.length * L.lead
   const AXIS = y + size
   for (let t = 0; t <= top; t += stepDays) {
     out.push(line(x(t), AXIS, x(t), AXIS + 6, { stroke: RULE, width: 1 }))
@@ -109,7 +112,11 @@ export function back(c, W, env = {}) {
   y += 16 + size
   const foot = wrapWords('HOW FAR APART TWO PAGES COME DOWN', W - 2 * pad, size, measure, 600, 0.9)
   foot.forEach((s2, i) => out.push(text(pad, y + i * L.lead, s2, { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 })))
-  y += 12 + (foot.length - 1) * L.lead
+  y += (foot.length - 1) * L.lead
+  const same = wrapWords('each bar starts at day zero on the ruler at the top of this sheet',
+    W - 2 * pad, size, measure)
+  same.forEach((s2, i) => out.push(text(pad, y + 6 + size + i * L.lead, s2, { size, fill: INK, opacity: 0.55 })))
+  y += 12 + same.length * L.lead
   const buckets = [
     { key: 'same', label: 'peaked on the same date', colour: BOUND },
     { key: 'near', label: 'peaked within a fortnight of each other', colour: NEAR },

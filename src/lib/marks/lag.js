@@ -9,7 +9,7 @@
 // It is drawn on the hero's ruler, at the same domain and the same ticks, so a row
 // here can be read straight up into a row there.
 import {
-  text, line, circle, rect, ramp, clamp, advance, wrapWords, tieScale, tieTicks, svg,
+  text, line, circle, rect, ramp, clamp, advance, wrapWords, tieScale, tieTicks, svg, bandNote,
   INK, RULE, ALONE, WHITE,
 } from './lib.js'
 
@@ -49,7 +49,12 @@ export function lag(c, W, env = {}) {
   let y = size + 4
   const cap = wrapWords('HOW CLOSELY THE TWO PAGES MOVED, WITH ONE CALENDAR SHIFTED', plotW, size, measure, 600, 0.9)
   cap.forEach((s, i) => out.push(text(plotL, y + i * L.lead, s, { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 })))
-  y += 14 + size + (cap.length - 1) * L.lead
+  y += size + (cap.length - 1) * L.lead + 6
+  // This sheet carries the hero's band and none of the hero's legend, so it names the
+  // band itself, in the hero's own words.
+  const what = wrapWords('one dot is one pair. the pale band is ' + bandNote(c), plotW, size, measure)
+  what.forEach((s2, i) => out.push(text(plotL, y + size + i * L.lead, s2, { size, fill: INK, opacity: 0.55 })))
+  y += 8 + what.length * L.lead
   const AXIS = y + size
   for (const t of tieTicks(plotW)) {
     out.push(line(x(t), AXIS, x(t), AXIS + 6, { stroke: RULE, width: 1 }))

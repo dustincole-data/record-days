@@ -248,6 +248,11 @@ export function stress(nodes, dist, iterations = 600) {
 // The hero and the lag sheet both measure the same quantity, so they are drawn on
 // one domain with one tick set. At equal width they are pixel-identical rulers, and
 // a lag row can be read straight up into the hero's rows.
+// One sentence for the pale band, said the same way on both sheets that draw it. A
+// reader who meets it on the hero and again under the lag rows must not have to work out
+// that they are the same region.
+export const bandNote = (c) => 'the middle ' + c.bond.band + '% of the pairs that shared no date'
+
 export const TIE_MIN = -0.5
 export const TIE_MAX = 0.95
 export const TIE_TICKS = [-0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8]

@@ -61,7 +61,10 @@ export function famePanel(c, W, spec, env = {}) {
   let y = 0
   const headLines = wrapWords(spec.head, W, size, measure, 600, 0.9)
   headLines.forEach((s, i) => out.push(text(0, y + size + i * L.lead, s, { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 })))
-  y += headLines.length * L.lead + 8
+  y += headLines.length * L.lead
+  // What a dot is. The rule through each row names itself in its own label below.
+  out.push(text(0, y + size, 'one dot is one page', { size, fill: INK, opacity: 0.55 }))
+  y += L.lead + 8
   const AXIS = y + size + 4
   for (const t of spec.ticks) {
     out.push(line(xf(t), AXIS - 6, xf(t), AXIS, { stroke: RULE, width: 1 }))
@@ -103,7 +106,7 @@ export function famePanel(c, W, spec, env = {}) {
     swarm(row.set, cy, row.colour)
     const m = spec.stat(row.g)
     out.push(line(xf(m), cy - half - 6, xf(m), cy + half + 6, { stroke: INK, width: 1.4, opacity: 0.75 }))
-    const lbl = m.toLocaleString('en-US')
+    const lbl = 'half at ' + m.toLocaleString('en-US')
     const lw = measure(lbl, size, 600)
     out.push(text(clamp(lw / 2, xf(m), W - lw / 2), top + size, lbl, { size, weight: 600, anchor: 'middle', fill: INK, opacity: 0.88 }))
     out.push(text(0, cy + half + 18 + size, row.label + ', ' + row.g.n + ' pages', { size, fill: INK, opacity: 0.7 }))

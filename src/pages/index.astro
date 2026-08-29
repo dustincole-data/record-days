@@ -46,11 +46,6 @@ const lifts = edges.slice().sort((a, b) => b.lift - a.lift)
 const flat = edges.slice().sort((a, b) => a.lift - b.lift)[0]
 const topShare = Math.round(c.definitions.topShare * 100)
 const nameOf = (a) => a.replace(/_/g, ' ')
-const zero = c.bond.lag.find((l) => l.lag === 0)
-const oneOut = c.bond.lag.find((l) => l.lag === 1)
-// The two rows where the pages did not come down together. Both are named on the sheet
-// and both are named here, so the exception is not left for a reader to find.
-const widest = c.back.rows.filter((r) => r.gap !== null).sort((a, b) => b.gap - a.gap)
 
 const title = 'The cast'
 const desc = `${c.groups.inCast} of the ${c.groups.total} biggest days in Wikipedia's reading record are shared by ` +
@@ -85,10 +80,7 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
         {c.groups.inCast} of the {c.groups.total} biggest reading days in Wikipedia's record are not one page
         having a day. They are two, three or four pages having the same day, in {c.groups.casts} groups.
       </p>
-      <p class="stand">
-        A year later those pages were still moving together. Pages that landed on the same date without
-        sharing an event were not.
-      </p>
+      <p class="stand">A year later those pages were still moving together.</p>
     </header>
 
     <section id="cast" class="shell">
@@ -96,15 +88,11 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
         <div class="mark-box" data-draw="hero" set:html={hero.svg}></div>
       </figure>
       <div class="claim">
-        <p>
-          Half the pairs that shared a record day sit at {c.bond.same.median}. Half the pairs that shared no
-          date sit at {c.bond.far.median}, and half the pairs whose dates fell within a fortnight of each
-          other sit at {c.bond.near.median}.
-        </p>
+        <p>Half the pairs that shared a record day sit at {c.bond.same.median}.</p>
         <p>
           {inside} of the {measured.length} measurable groups do not separate from the strangers at all.
           Aretha Franklin and Atal Bihari Vajpayee sit at {floorRow.median}, Tom Brady and The Weeknd at
-          {' '}{brady.median}. They are the bottom of the sheet and they stay on it.
+          {' '}{brady.median}.
         </p>
         <p>
           In readers it looks like this. Take the {topShare}% of days on which a page was read most
@@ -122,11 +110,7 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
           {' '}{c.definitions.sharedMin} dates both pages were read on. {c.bond.rows} of the
           {' '}{c.groups.total} pages carry a series long enough to measure.
         </li>
-        <li>
-          The pale band is where the middle {c.bond.band}% of the pairs that shared no record day sit, from
-          {' '}{c.bond.p05} to {c.bond.p95}. {c.bond.aboveP95} of the {c.bond.same.n} same-day pairs are
-          above it.
-        </li>
+        <li>{c.bond.aboveP95} of the {c.bond.same.n} same-day pairs sit above the pale band.</li>
         <li>
           Redrawing every record date inside its own year, its own month and its own weekday,
           {' '}{num(c.groups.null.draws)} times, puts {c.groups.null.expected} rows in a group rather than
@@ -146,11 +130,6 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
 
     <section id="fame" class="shell">
       <h2>The two kinds of record day</h2>
-      <p class="stand">
-        A page that shares its record day was already being read {num(c.fame.cast.base)} times a day. A page
-        that has it alone was being read {num(c.fame.solo.base)} times a day. Their record days are the same
-        size: {num(c.fame.cast.peak)} against {num(c.fame.solo.peak)}.
-      </p>
       <div class="pair">
         {fame.map((p) => (
           <figure class="mark">
@@ -171,7 +150,7 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
       <ul class="notes">
         <li>
           Readers a day before the event is the median of the {Math.abs(q.baseFrom) - Math.abs(q.baseTo) + 1}
-          {' '}days ending {Math.abs(q.baseTo)} days before the peak. The bar is the median of each row.
+          {' '}days ending {Math.abs(q.baseTo)} days before the peak.
         </li>
         <li>
           Mann-Whitney with a tie correction, two-sided: z {c.fame.test.z}, p rounds to
@@ -187,9 +166,7 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
     <section id="back" class="shell">
       <h2>They come down together</h2>
       <p class="stand">
-        Two pages that shared a record day are back to ordinary reading within a median of
-        {' '}{c.back.same.median} days of each other. Two pages that did not are {c.back.far.median} days
-        apart. This uses no correlation and no detrending, only the day each page stopped being unusual.
+        No correlation and no detrending, only the day each page stopped being unusual.
       </p>
       <figure class="mark">
         <div class="mark-box" data-draw="back" set:html={back.svg}></div>
@@ -200,10 +177,8 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
           median as short as {c.back.same.median} days.
         </li>
         <li>
-          The two widest rows are the ones this statistic gets least out of. Aretha Franklin and Atal
-          Bihari Vajpayee come down {widest[0].gap} days apart, Prince and Chyna {widest[1].gap}. Tom Brady
-          and The Weeknd come down a day apart, and this statistic does not separate them; the sheet above
-          does.
+          Tom Brady and The Weeknd come down a day apart, and this statistic does not separate them. The
+          first sheet does.
         </li>
         <li>
           A page with no pre-event level to come back to, and a page whose title was renamed, carry no day
@@ -217,11 +192,6 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
 
     <section id="lag" class="shell">
       <h2>The tie is to the exact day</h2>
-      <p class="stand">
-        The {c.bond.same.n} pairs, scored again with one page's calendar moved a day at a time. Aligned, half
-        of them sit at {zero.median}. One day out, {oneOut.median}. Three days out, the whole row is back
-        inside the field where two unrelated pages live.
-      </p>
       <figure class="mark">
         <div class="mark-box" data-draw="lag" set:html={lag.svg}></div>
       </figure>
