@@ -57,7 +57,7 @@ export function back(c, W, env = {}) {
     plotW, size, measure, 600, 0.9)
   cap.forEach((s, i) => out.push(text(plotL, y + i * L.lead, s, { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 })))
   y += size + (cap.length - 1) * L.lead + 6
-  const what = wrapWords('one row is one record day, one dot is one page, the bar spans the days between them', plotW, size, measure)
+  const what = wrapWords('one row is one record day, one dot is one page', plotW, size, measure)
   what.forEach((s2, i) => out.push(text(plotL, y + size + i * L.lead, s2, { size, fill: INK, opacity: 0.55 })))
   y += 8 + what.length * L.lead
   const AXIS = y + size
@@ -113,7 +113,7 @@ export function back(c, W, env = {}) {
   const foot = wrapWords('HOW FAR APART TWO PAGES COME DOWN', W - 2 * pad, size, measure, 600, 0.9)
   foot.forEach((s2, i) => out.push(text(pad, y + i * L.lead, s2, { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 })))
   y += (foot.length - 1) * L.lead
-  const same = wrapWords('each bar starts at day zero on the ruler at the top of this sheet',
+  const same = wrapWords('bars use the ruler at the top of this sheet',
     W - 2 * pad, size, measure)
   same.forEach((s2, i) => out.push(text(pad, y + 6 + size + i * L.lead, s2, { size, fill: INK, opacity: 0.55 })))
   y += 12 + same.length * L.lead

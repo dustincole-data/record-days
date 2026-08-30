@@ -129,15 +129,11 @@ export function hero(c, W, env = {}) {
   const cap = wrapWords('THE YEAR AFTER THE RECORD DAY, ONE CELL PER GROUP', capW, size, measure, 600, 0.9)
   cap.forEach((s, i) => out.push(text(pad, y + i * L.lead, s, { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 })))
   y += (cap.length - 1) * L.lead + 8
-  const how = wrapWords(
-    'the largest page of a group rises above its line and the second falls below it, one day at a time from day ' +
-    c.tracks.from + ' to day ' + c.tracks.to + ' after the record day. a group read unusually on the same days ' +
-    'closes into one shape with two matching halves. a third or fourth page rides behind, paler.',
-    capW, size, measure)
+  const how = wrapWords('one page above the line, the other below, every day from ' + c.tracks.from +
+    ' to ' + c.tracks.to + '. matching halves mean they moved together.', capW, size, measure)
   how.forEach((s, i) => out.push(text(pad, y + size + i * L.lead, s, { size, fill: INK, opacity: 0.6 })))
-  y += how.length * L.lead + 8
-  const ord = wrapWords('the cells run from the group whose pages moved together most down to the two controls ' +
-    'at the foot, which are drawn on the same geometry. the figure at the right of a cell is its tie.',
+  y += how.length * L.lead + 6
+  const ord = wrapWords('sorted by tie, the figure at each cell’s right. last two cells are controls.',
     capW, size, measure)
   ord.forEach((s, i) => out.push(text(pad, y + size + i * L.lead, s, { size, fill: INK, opacity: 0.6 })))
   y += ord.length * L.lead + 14

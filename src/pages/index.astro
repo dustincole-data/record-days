@@ -1,10 +1,14 @@
 ---
-// The Cast — the whole site. One page, five sections, four sheets.
+// The Cast — the whole site. One page, four sheets, then the method.
 //
-// Every figure below is read out of data/census/cast.json, which scripts/analyse-cast.js
-// writes from src/lib/findings.js, or out of the census file's own meta block. Nothing on
-// this page is typed by hand, and test/copy.test.js fails the build if a number appears
-// here that neither file can account for.
+// The page is a walk, not an essay: a finding as the heading, the sheet that shows it,
+// and at most one line under it. Everything that is method rather than finding lives in
+// the tail, once, so no beat has to carry it.
+//
+// Every figure is read out of data/census/cast.json, which scripts/analyse-cast.js writes
+// from src/lib/findings.js, or out of the census file's own meta block. Nothing here is
+// typed by hand, and test/copy.test.js fails the build if a number appears that neither
+// file can account for.
 import cast from '../../data/census/cast.json'
 import census from '../../data/census/top-days.json'
 import renamed from '../../data/census/renamed.json'
@@ -39,8 +43,8 @@ const floorRow = c.constellations.find((k) => k.date === '2018-08-16')
 const brady = c.constellations.find((k) => k.date === '2021-02-08')
 const machine = c.machine.found[0]
 // What the correlation is in readers: take the days on which one page was read most
-// unusually and read its castmate on exactly those days. The two largest edges and the
-// smallest, so the sentence carries its own counter-example.
+// unusually and read its castmate on exactly those days. The largest edge and the
+// smallest, so the line carries its own counter-example.
 const edges = c.constellations.flatMap((k) => k.edges)
 const lifts = edges.slice().sort((a, b) => b.lift - a.lift)
 const flat = edges.slice().sort((a, b) => a.lift - b.lift)[0]
@@ -80,65 +84,23 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
         {c.groups.inCast} of the {c.groups.total} biggest reading days in Wikipedia's record are not one page
         having a day. They are two, three or four pages having the same day, in {c.groups.casts} groups.
       </p>
-      <p class="stand">A year later those pages were still moving together.</p>
     </header>
 
     <section id="cast" class="shell">
+      <h2>A year later, they were still moving together</h2>
       <figure class="mark">
         <div class="mark-box" data-draw="hero" set:html={hero.svg}></div>
       </figure>
-      <div class="claim">
-        <p>Half the pairs that shared a record day sit at {c.bond.same.median}.</p>
-        <p>
-          {inside} of the {measured.length} measurable groups do not separate from the strangers at all.
-          Aretha Franklin and Atal Bihari Vajpayee sit at {floorRow.median}, Tom Brady and The Weeknd at
-          {' '}{brady.median}.
-        </p>
-        <p>
-          In readers it looks like this. Take the {topShare}% of days on which a page was read most
-          unusually and read its castmate on exactly those days. {nameOf(lifts[0].a)}'s days put
-          {' '}{nameOf(lifts[0].b)} at {lifts[0].lift} times her own ordinary amount and
-          {' '}{nameOf(lifts[1].b)} at {lifts[1].lift} times his. {nameOf(flat.a)}'s days put
-          {' '}{nameOf(flat.b)} at {flat.lift}.
-        </p>
-      </div>
-      <ul class="notes">
-        <li>
-          The tie is the correlation of two pages' daily readings over days {c.definitions.from} to
-          {' '}{c.definitions.to} after each peak, after a rolling median of the {c.definitions.half} days
-          either side of a day is subtracted from it, matched on calendar date and requiring
-          {' '}{c.definitions.sharedMin} dates both pages were read on. {c.bond.rows} of the
-          {' '}{c.groups.total} pages carry a series long enough to measure.
-        </li>
-        <li>
-          {c.bond.aboveP95} of the {c.bond.same.n} same-day pairs sit above the middle {c.bond.band}% of the
-          pairs that shared no date, which runs from {c.bond.p05} to {c.bond.p95}.
-        </li>
-        <li>
-          A cell draws each page's readings against the middle of its own
-          {' '}{2 * c.definitions.half + 1} days, the same quantity the tie is taken on. For drawing only, a
-          day is clipped at {c.tracks.clip} either side of nought, which touches {c.tracks.clippedShare}% of
-          the {num(c.tracks.readings)} readings on the sheet.
-        </li>
-        <li>
-          Redrawing every record date inside its own year, its own month and its own weekday,
-          {' '}{num(c.groups.null.draws)} times, puts {c.groups.null.expected} rows in a group rather than
-          {' '}{c.groups.inCast}. No draw of the {num(c.groups.null.draws)} reached {c.groups.inCast}, and
-          none reached the observed median tie either.
-        </li>
-        <li>
-          {c.bond.same.n - c.bond.tokens.kept} of the {c.bond.same.n} same-day pairs share a word between
-          their two titles. Dropping every one of them leaves {c.bond.tokens.kept} pairs at
-          {' '}{c.bond.tokens.median}.
-        </li>
-        <li>{SOURCE}</li>
-      </ul>
+      <p class="beat">
+        Half the pairs that shared a record day sit at {c.bond.same.median}. Pairs that shared no date sit at
+        {' '}{c.bond.far.median}.
+      </p>
     </section>
 
     <hr class="rule" />
 
     <section id="fame" class="shell">
-      <h2>The two kinds of record day</h2>
+      <h2>One page was already famous. The other was not.</h2>
       <div class="pair">
         {fame.map((p) => (
           <figure class="mark">
@@ -146,111 +108,115 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
           </figure>
         ))}
       </div>
-      <div class="claim">
-        <p>
-          The page that shared its day multiplied itself {c.fame.cast.lift} times over. The page that had it
-          alone multiplied itself {c.fame.solo.lift} times over.
-        </p>
-        <p>
-          A record day is either the world turning to a page it already used, or the world finding one it did
-          not know. Only the second kind happens alone.
-        </p>
-      </div>
-      <ul class="notes">
-        <li>
-          Readers a day before the event is the median of the {Math.abs(q.baseFrom) - Math.abs(q.baseTo) + 1}
-          {' '}days ending {Math.abs(q.baseTo)} days before the peak.
-        </li>
-        <li>
-          Mann-Whitney with a tie correction, two-sided: z {c.fame.test.z}, p rounds to
-          {' '}{c.fame.test.p.toFixed(3)}, on the {c.fame.test.n1} and {c.fame.test.n2} pages above the
-          {' '}{c.fame.floor}-readers-a-day floor. The two medians on the record-day panel are
-          {' '}{c.fame.peakGap}% apart.
-        </li>
-      </ul>
+      <p class="beat">
+        The record days are the same size, {c.fame.peakGap}% apart. The page that shared its day multiplied
+        itself {c.fame.cast.lift} times over. The page that had it alone, {c.fame.solo.lift} times.
+      </p>
     </section>
 
     <hr class="rule" />
 
     <section id="back" class="shell">
-      <h2>They come down together</h2>
-      <p class="stand">
-        No correlation and no detrending, only the day each page stopped being unusual.
-      </p>
+      <h2>They come back down together</h2>
       <figure class="mark">
         <div class="mark-box" data-draw="back" set:html={back.svg}></div>
       </figure>
-      <ul class="notes">
-        <li>
-          Permuting which pairs count as same-day {num(c.back.permutation.draws)} times, no draw produced a
-          median as short as {c.back.same.median} days.
-        </li>
-        <li>
-          Tom Brady and The Weeknd come down a day apart, and this statistic does not separate them. The
-          first sheet does.
-        </li>
-        <li>
-          A page with no pre-event level to come back to, and a page whose title was renamed, carry no day
-          and are left out of their row rather than counted as a zero. One group loses both of its pages that
-          way and does not appear.
-        </li>
-      </ul>
+      <p class="beat">No correlation here and no detrending, only the day each page stopped being unusual.</p>
     </section>
 
     <hr class="rule" />
 
     <section id="lag" class="shell">
-      <h2>The tie is to the exact day</h2>
+      <h2>Move one calendar by a day and it goes</h2>
       <figure class="mark">
         <div class="mark-box" data-draw="lag" set:html={lag.svg}></div>
       </figure>
-      <ul class="notes">
-        <li>
-          The same {c.bond.same.n} pairs at every row, so nothing changes between the rows except the shift.
-        </li>
-        <li>
-          The near-miss control says it from the other side: pairs whose record days were 1 to
-          {' '}{c.definitions.near} days apart, and so belonged to the same news season, sit at
-          {' '}{c.bond.near.median} over {c.bond.near.n} pairs.
-        </li>
-        <li>
-          The tie weakens over the year and does not fall into the noise. By quarter after the peak:
-          {' '}{c.bond.quarters.map((qq) => `${qq.same.median} against ${qq.far.median}`).join(', ')}.
-        </li>
-      </ul>
+      <p class="beat">
+        In readers: take the {topShare}% of days a page was read most unusually, then read its castmate on
+        exactly those days. {nameOf(lifts[0].a)}'s days put {nameOf(lifts[0].b)} at {lifts[0].lift} times her
+        own ordinary amount. {nameOf(flat.a)}'s put {nameOf(flat.b)} at {flat.lift}.
+      </p>
     </section>
 
     <hr class="rule" />
 
     <section id="method" class="shell">
-      <h2>How the file was built</h2>
+      <details class="how">
+      <summary>How the file was built</summary>
       <div class="method">
         <div>
           <h3>The set</h3>
           <p>
-            Stage one walked the daily most-read endpoint for all {num(meta.window.days)} days the API covers
-            and kept every article that ever appeared on it: {num(meta.articles_seen)} articles. Stage two
-            pulled the full daily series for the {num(meta.candidates_tested)} largest single days on record.
-            {' '}{meta.qualified} of those passed the gate below and the {c.groups.total} largest are this
-            file.
+            Every article that ever reached a day's most-read list over {num(meta.window.days)} days:
+            {' '}{num(meta.articles_seen)} of them. The {num(meta.candidates_tested)} largest single days were
+            pulled in full, {meta.qualified} passed the gate, and the {c.groups.total} largest are this file.
           </p>
         </div>
         <div>
           <h3>The gate</h3>
           <p>
-            A row qualifies only if, {q.at} days after its peak, it still holds {q.alive} of that peak day; it
+            A row qualifies only if, {q.at} days after its peak, it still holds {q.alive} of that peak; it
             holds {q.share} of the peak or sits at {q.lift} times its own level before the event; and it has
-            fallen to under {q.falling} of where it was {q.against} days after. Neither test looks at where
-            the page settles a year later, which is the thing measured here.
+            fallen under {q.falling} of where it was {q.against} days after. Nothing in it looks at where a
+            page settles a year later, which is the thing measured here.
+          </p>
+        </div>
+        <div>
+          <h3>The tie</h3>
+          <p>
+            The correlation of two pages' daily readings over days {c.definitions.from} to {c.definitions.to}
+            after each peak, after a rolling median of the {c.definitions.half} days either side of a day is
+            subtracted from it, matched on calendar date and requiring {c.definitions.sharedMin} dates both
+            pages were read on. {c.bond.rows} of the {c.groups.total} pages carry a long enough series.
+          </p>
+        </div>
+        <div>
+          <h3>What the first sheet draws</h3>
+          <p>
+            Each cell draws that same residual, one day at a time, its largest page above the line and its
+            second below. For drawing only, a day is clipped at {c.tracks.clip} either side of nought, which
+            touches {c.tracks.clippedShare}% of the {num(c.tracks.readings)} readings on the sheet.
+          </p>
+        </div>
+        <div>
+          <h3>The null</h3>
+          <p>
+            Redrawing every record date inside its own year, its own month and its own weekday
+            {' '}{num(c.groups.null.draws)} times puts {c.groups.null.expected} rows in a group rather than
+            {' '}{c.groups.inCast}. No draw of the {num(c.groups.null.draws)} reached {c.groups.inCast}, and
+            none reached the observed median tie. Permuting which pairs count as same-day
+            {' '}{num(c.back.permutation.draws)} times, no draw came down as close as {c.back.same.median}
+            {' '}days.
+          </p>
+        </div>
+        <div>
+          <h3>The groups that do not separate</h3>
+          <p>
+            {inside} of the {measured.length} measurable groups sit inside the middle {c.bond.band}% of the
+            pairs that shared no date, {c.bond.p05} to {c.bond.p95}. Aretha Franklin and Atal Bihari Vajpayee
+            sit at {floorRow.median}, Tom Brady and The Weeknd at {brady.median}. {c.bond.aboveP95} of the
+            {' '}{c.bond.same.n} same-day pairs sit above that band.
+          </p>
+        </div>
+        <div>
+          <h3>Shared words, and the near miss</h3>
+          <p>
+            {c.bond.same.n - c.bond.tokens.kept} of the {c.bond.same.n} same-day pairs share a word between
+            their titles; dropping every one leaves {c.bond.tokens.kept} pairs at {c.bond.tokens.median}.
+            Pairs whose record days fell 1 to {c.definitions.near} days apart, the same news season, sit at
+            {' '}{c.bond.near.median} over {c.bond.near.n} pairs. By quarter after the peak the tie weakens
+            and does not fall into the noise:
+            {' '}{c.bond.quarters.map((qq) => `${qq.same.median} against ${qq.far.median}`).join(', ')}.
           </p>
         </div>
         <div>
           <h3>The {c.fame.floor}-readers-a-day floor</h3>
           <p>
             A page read fewer than {c.fame.floor} times a day before its event has no level for a multiple to
-            be taken against. {underFloor} of the {c.groups.total} pages sit under that floor. They are drawn
-            on the left edge of the readers-before panel, and they are left out of the Mann-Whitney test and
-            out of both multiples.
+            be taken against. {underFloor} of the {c.groups.total} sit under it. They are drawn on the left
+            edge of the readers-before panel and left out of both multiples and of the test. Mann-Whitney
+            with a tie correction, two-sided: z {c.fame.test.z}, p rounds to {c.fame.test.p.toFixed(3)}, on
+            {' '}{c.fame.test.n1} and {c.fame.test.n2} pages.
           </p>
         </div>
         <div>
@@ -258,8 +224,8 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
           <p>
             {c.bond.dropped.renamed} of the {c.groups.total} articles were later moved to a new title. The old
             title stops receiving traffic at the move, so a series read after it measures the move. They are
-            kept in every figure that looks only at the record day, which happened while the article still
-            carried that title, and dropped from every figure about the year after.
+            kept in every figure about the record day itself and dropped from every figure about the year
+            after.
           </p>
           <ul class="renamed">
             {Object.entries(renamed).map(([from, to]) => (
@@ -270,31 +236,32 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
         <div>
           <h3>The machine test</h3>
           <p>
-            The gate reads day {q.against}, day {q.at} and the level before the event. A page driven by an
-            automated crawl can pass all of that and still show a shape no readership has: one day sitting
-            back at its own level with a day either side running a hundred times above it. The rule looks for
-            a day at or under {c.definitions.machine.at} times a page's own level with the day either side at
-            or over {c.definitions.machine.around} times it, anywhere in the
-            {' '}{Math.abs(c.definitions.machine.from)} days either side of the peak.
+            A crawl can pass the gate and still show a shape no readership has: one day back at its own level
+            with a day either side a hundred times above it. The rule looks for a day at or under
+            {' '}{c.definitions.machine.at} times a page's own level between two days at or over
+            {' '}{c.definitions.machine.around} times it, within {Math.abs(c.definitions.machine.from)} days
+            of the peak. Exactly {c.machine.n} of {c.groups.total} qualifies:
+            {' '}{machine.article.replace(/_/g, ' ')}, record day {machine.date}, reading
+            {' '}{num(machine.value)} on day {machine.day} between {num(machine.before)} and
+            {' '}{num(machine.after)}, on a level of {num(machine.base)}. It is dropped from every figure
+            about the aftermath. It had its record day alone, so {c.groups.inCast} of {c.groups.total} is
+            unmoved; the one figure that moves is the median of the pairs that shared no date, from
+            {' '}{c.bond.withMachine.far.median} to {c.bond.far.median}.
           </p>
         </div>
         <div>
-          <h3>The ruling on {machine.article.replace(/_/g, ' ')}</h3>
+          <h3>Missing is not zero</h3>
           <p>
-            Exactly {c.machine.n} of the {c.groups.total} rows qualifies. {machine.article.replace(/_/g, ' ')},
-            record day {machine.date}, reads {num(machine.value)} on day {machine.day} between
-            {' '}{num(machine.before)} and {num(machine.after)}, on a level of {num(machine.base)}. People do
-            not stop for one day and come back. It is dropped from every figure about the aftermath, exactly
-            as the renamed titles are. It had its record day alone, so {c.groups.inCast} of
-            {' '}{c.groups.total} is unmoved. The one figure that moves is the median of the pairs that shared
-            no date, from {c.bond.withMachine.far.median} to {c.bond.far.median}, and the file carries both.
+            A page with no pre-event level to come back to, and a page whose title was renamed, carry no day
+            and are left out of their row rather than counted as a zero. Two groups have no measurable tie at
+            all; they are named on the first sheet rather than dropped from it.
           </p>
         </div>
-        <div class="wide">
+        <div>
           <h3>Users, not agents</h3>
           <p>
-            Every count on this page is the user-agent series. A separate probe in the same repository counts
-            all agents and reads larger for the same peak. The two are never mixed inside one figure.
+            Every count here is the user-agent series. A separate probe counts all agents and reads larger for
+            the same peak. The two are never mixed inside one figure.
           </p>
         </div>
       </div>
@@ -304,6 +271,7 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
         {' '}<code>data/census/cast.json</code>; the page reads that file and states nothing it does not
         contain.
       </p>
+      </details>
     </section>
 
     <footer>

@@ -57,28 +57,14 @@ body {
   font-size: clamp(16px, 1.25vw, 18px);
   color: var(--ink);
 }
-.masthead .stand {
-  margin: 0.5rem 0 0;
-  max-width: 62ch;
-  font-size: clamp(15px, 1.1vw, 17px);
-  color: var(--soft);
-}
 
 section { padding: 3.25rem 0 0; scroll-margin-top: 1rem; }
 section > h2 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 1.4rem;
   font-size: clamp(21px, 2.1vw, 27px);
   font-weight: 600;
   letter-spacing: -0.015em;
 }
-section > .stand {
-  margin: 0 0 1.6rem;
-  max-width: 66ch;
-  font-size: clamp(15px, 1.1vw, 17px);
-  color: var(--ink);
-}
-section > .stand em { font-style: normal; color: var(--soft); }
-
 .rule { border: 0; border-top: 1px solid var(--rule); margin: 3.25rem 0 0; }
 
 /* Marks. Each box is measured and redrawn at the width it actually has; the svg the
@@ -94,26 +80,34 @@ section > .stand em { font-style: normal; color: var(--soft); }
 }
 @media (min-width: 900px) { .pair { grid-template-columns: 1fr 1fr; } }
 
-.claim {
-  margin: 1.9rem 0 0;
-  padding-top: 1.1rem;
+/* One line under a sheet. A beat is the only prose a finding gets; everything that is
+   method rather than finding is in the tail. */
+.beat {
+  margin: 1.4rem 0 0;
+  padding-top: 1rem;
   border-top: 1px solid var(--hair);
   max-width: 72ch;
   font-size: clamp(15px, 1.15vw, 17px);
 }
-.claim p { margin: 0 0 0.45rem; }
-.claim p:last-child { margin-bottom: 0; }
 
-.notes {
-  margin: 1.4rem 0 0;
-  padding: 0;
+/* Methodology, folded away. The walk is the page; this is the appendix that proves it,
+   open to anyone who wants it and silent for everyone who does not. */
+.how > summary {
+  cursor: pointer;
+  font-size: clamp(21px, 2.1vw, 27px);
+  font-weight: 600;
+  letter-spacing: -0.015em;
   list-style: none;
-  max-width: 88ch;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--soft);
 }
-.notes li { margin: 0 0 0.35rem; }
+.how > summary::-webkit-details-marker { display: none; }
+.how > summary::after {
+  content: ' +';
+  color: var(--soft);
+  font-weight: 400;
+}
+.how[open] > summary::after { content: ' 2'; }
+.how > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.how[open] > summary { margin-bottom: 1.4rem; }
 
 /* Methodology. Two columns where there is room, one where there is not. */
 .method { display: grid; gap: 1.75rem 2.75rem; grid-template-columns: 1fr; }
