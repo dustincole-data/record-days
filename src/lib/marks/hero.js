@@ -1,317 +1,193 @@
-// THE HERO: the nineteen constellations, on the ruler that measures them.
+// THE HERO: the year after the record day, one cell per group.
 //
-// A row is one record day. Inside a row a disc is a page and its area is the readers
-// it took that day; the gap between two discs is how far apart the two pages stayed
-// for the rest of the year, and the band joining them is the same number drawn as a
-// thickness. The row sits on the sheet at the middle of its own ties.
+// A cell is one record day. Inside it the group's largest page is drawn rising above
+// the line and the second falling below it, over the year that followed, so a group
+// whose pages were read unusually on the SAME days closes into one shape with two
+// matching halves and a group whose pages went their own way does not. A third or
+// fourth page rides behind on alternating sides.
 //
-// Above the rows, the two controls, drawn as themselves: every one of the pairs of
-// pages that did not share a record day, and every one of the pairs whose days were
-// within a fortnight of each other. Two constellations land inside them.
+// The quantity is the same residual the tie is computed from: a day's readings against
+// the middle of its own 29 days. Nothing is smoothed. The only thing the drawing adds
+// is the mirror.
 //
-// The sheet reflows rather than scales. Wide, the row is three columns: date, figure,
-// pages. Narrow, the pages move above their own figure and the ruler takes the full
-// width, because a three-column row on a phone is a squeezed poster and not a page.
+// The cells are ordered by how closely the pages moved, so the sheet runs from matched
+// at the head to ragged at the foot, and the last two cells are the controls: a pair
+// whose record days were within a fortnight of each other, and a pair that shared no
+// record day at all. They are drawn on the identical geometry, so the comparison is
+// the picture rather than a claim about it.
+//
+// The sheet reflows rather than scales: three columns, two, or one, by the room there
+// is, and the type never moves off 14px on a desktop or 13px on a phone.
 import {
-  text, line, circle, rect, path, band, ramp, stress, title, clamp,
-  wrapList, wrapWords, advance, tieScale, tieTicks, rng, svg, bandNote,
-  INK, RULE, ALONE, NEAR, WHITE,
+  text, line, rect, path, ramp, title, clamp, decodeTrack, runsOf,
+  wrapList, wrapWords, advance, svg, INK, RULE,
 } from './lib.js'
 
-export const SIDE_AT = 1000
+export const COLS_3 = 1000
+export const COLS_2 = 640
 
 export function heroLayout(W, measure = advance) {
   const phone = W < 560
-  const side = W >= SIDE_AT
   const pad = phone ? 16 : W < 900 ? 24 : 36
   const size = phone ? 13 : 14
-  const dateW = Math.ceil(measure('2026-02-20', size)) + 8
-  const labelW = side ? clamp(300, Math.round(W * 0.3), 460) : 0
-  const plotL = side ? pad + dateW + 14 : pad
-  const plotR = side ? W - pad - labelW - 22 : W - pad
+  const cols = W >= COLS_3 ? 3 : W >= COLS_2 ? 2 : 1
+  const gut = cols === 1 ? 0 : 28
+  const cellW = (W - 2 * pad - (cols - 1) * gut) / cols
   return {
-    W, phone, side, pad, size, dateW, labelW, plotL, plotR,
-    plotW: plotR - plotL,
-    labelX: side ? W - pad - labelW : pad,
-    // The largest disc and the pixels per unit of "one minus the tie" both come off
-    // the ruler's own width, so the figures keep their proportions to it at any size.
-    radius: clamp(12, (plotR - plotL) * 0.0256, 22),
-    sep: clamp(34, (plotR - plotL) * 0.0907, 78),
-    lead: side ? 17 : 16,
+    W, phone, pad, size, cols, gut, cellW,
+    lead: phone ? 16 : 17,
+    // The plot is deeper where there is room for it, because what has to be read is a
+    // silhouette, and a squashed silhouette is a line.
+    half: clamp(30, cellW * 0.115, 52),
   }
+}
+
+// One cell: its head lines, then the mirrored fills under them.
+function cell(L, x0, y0, spec, measure) {
+  const { size, cellW } = L
+  const out = []
+  const col = spec.colour
+  const room = cellW - measure(spec.tieText, size, 600) - 14
+  const names = spec.names.slice()
+  // A group can hold a page that carries no year of readings, and a cell that quietly
+  // drew fewer pages than the group has would be short without saying so.
+  if (spec.short) names.push(spec.short)
+  const nameLines = wrapList(names, room, size, measure)
+  out.push(text(x0, y0 + size, spec.head, { size, weight: 600, fill: INK, opacity: 0.85 }))
+  out.push(text(x0 + cellW, y0 + size, spec.tieText, { size, weight: 600, anchor: 'end', fill: col }))
+  nameLines.forEach((s, i) => out.push(text(x0, y0 + size + (i + 1) * L.lead, s, { size, fill: INK, opacity: 0.62 })))
+
+  const mid = y0 + size + (nameLines.length + 1) * L.lead + 8 + L.half
+  const n = spec.tracks[0].length
+  const x = (i) => x0 + (i / (n - 1)) * cellW
+  const y = (v, s) => mid - s * clamp(-1, v / spec.clip, 1) * L.half
+  out.push(line(x0, mid, x0 + cellW, mid, { stroke: INK, width: 1, opacity: 0.28 }))
+  out.push('<g style="mix-blend-mode:multiply">')
+  spec.tracks.forEach((v, j) => {
+    const s = j % 2 ? -1 : 1
+    for (const r of runsOf(v)) {
+      const d = 'M ' + x(r[0][0]).toFixed(1) + ' ' + mid.toFixed(1) + ' L ' +
+        r.map(([i, val]) => x(i).toFixed(1) + ' ' + y(val, s).toFixed(1)).join(' L ') +
+        ' L ' + x(r[r.length - 1][0]).toFixed(1) + ' ' + mid.toFixed(1) + ' Z'
+      out.push(path(d, { fill: col, opacity: j > 1 ? 0.22 : 0.5 }))
+    }
+  })
+  out.push('</g>')
+  return { body: out.join(''), h: mid + L.half - y0 + 14 }
 }
 
 export function hero(c, W, env = {}) {
   const measure = env.measure || advance
   const L = heroLayout(W, measure)
-  const { plotL, plotR, plotW, pad, size, side, phone } = L
-  const x = tieScale(plotL, plotR)
+  const { pad, size, cols, cellW, gut } = L
+  const clip = c.tracks.clip
   const out = []
-
-  const measured = c.constellations.filter((k) => k.median !== null).sort((a, b) => b.median - a.median)
-  const unmeasured = c.constellations.filter((k) => k.median === null).sort((a, b) => a.date.localeCompare(b.date))
-  const maxPeak = Math.max(...c.constellations.flatMap((k) => k.pages.map((q) => q.peak)))
-  const discR = (peak) => L.radius * Math.sqrt(peak / maxPeak)
-  const bandW = (r) => (2.2 + 14 * Math.max(0, r)) * (L.radius / 22)
-  const rand = rng(20260828)
-
-  // --- the ruler -----------------------------------------------------------
-  let y = size + 4
-  const cap = wrapWords('HOW CLOSELY THE TWO PAGES MOVED FOR THE YEAR AFTER', plotW, size, measure, 600, 0.9)
-  cap.forEach((s, i) => out.push(text(plotL, y + i * L.lead, s,
-    { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 })))
-  y += 14 + size + (cap.length - 1) * L.lead
-  const AXIS = y + size
-  for (const t of tieTicks(plotW)) {
-    out.push(line(x(t), AXIS, x(t), AXIS + 6, { stroke: RULE, width: 1 }))
-    out.push(text(x(t), AXIS - 7, t.toFixed(1), { size, anchor: 'middle', fill: INK, opacity: 0.62, tick: true }))
-  }
-  out.push(line(plotL, AXIS, plotR, AXIS, { stroke: RULE, width: 1 }))
-
-  // --- the two controls, drawn as every pair they contain -------------------
-  const ticks = (rows, top, h, colour, sc = x, lo = plotL, hi = plotR) => {
-    const g = []
-    const q = (v) => Math.round(v * 100) / 100
-    for (const r of rows) {
-      const tx = sc(r)
-      if (tx < lo - 0.5 || tx > hi + 0.5) continue
-      const ty = q(top + rand() * (h - 7))
-      g.push('<line x1="' + q(tx) + '" y1="' + ty + '" x2="' + q(tx) + '" y2="' + q(ty + 7) +
-        '" stroke="' + colour + '" stroke-width="1" opacity="0.5" />')
+  const trackOf = (article) => {
+    for (const k of c.constellations) {
+      for (const p of k.pages) if (p.article === article && p.track) return decodeTrack(p.track, clip)
     }
-    return g.join('')
-  }
-  const farH = side ? 46 : 34
-  const nearH = side ? 30 : 22
-  let farTop, nearTop
-  if (side) {
-    farTop = AXIS + 20
-    nearTop = farTop + farH + 8
-    out.push(text(plotL - 14, farTop + size, 'no shared date', { size, anchor: 'end', fill: INK, opacity: 0.72 }))
-    out.push(text(plotL - 14, farTop + size + L.lead, c.bond.far.n.toLocaleString('en-US') + ' pairs', { size, anchor: 'end', fill: INK, opacity: 0.5 }))
-    out.push(text(plotL - 14, nearTop + size, 'within a fortnight', { size, anchor: 'end', fill: INK, opacity: 0.72 }))
-    out.push(text(plotL - 14, nearTop + size + L.lead, c.bond.near.n + ' pairs', { size, anchor: 'end', fill: INK, opacity: 0.5 }))
-    y = nearTop + nearH + 22
-  } else {
-    let ly = AXIS + 22 + size
-    out.push(text(plotL, ly, 'no shared date, ' + c.bond.far.n.toLocaleString('en-US') + ' pairs', { size, fill: INK, opacity: 0.72 }))
-    farTop = ly + 6
-    ly = farTop + farH + 16 + size
-    out.push(text(plotL, ly, 'within a fortnight, ' + c.bond.near.n + ' pairs', { size, fill: INK, opacity: 0.72 }))
-    nearTop = ly + 6
-    y = nearTop + nearH + 20
-  }
-  out.push(ticks(c.bond.farValues, farTop, farH, ALONE))
-  out.push(ticks(c.bond.nearValues, nearTop, nearH, NEAR))
-
-  // --- the header over the rows --------------------------------------------
-  out.push(line(pad, y, W - pad, y, { stroke: RULE, width: 1 }))
-  y += 18 + size
-  // What a row is, said where the rows begin. The date in the gutter and the titles in
-  // the margin are one record day, and nothing else on the sheet says so.
-  const groupLine = 'one row is one record day, ' + c.groups.casts + ' groups, ' + c.bond.same.n + ' pairs'
-  if (side) {
-    out.push(text(plotL - 14, y, 'the same date', { size, anchor: 'end', fill: INK, opacity: 0.72 }))
-    out.push(text(plotL, y, groupLine, { size, fill: INK, opacity: 0.55 }))
-    y += 20
-  } else {
-    const head = wrapWords('the same date, ' + groupLine, plotW, size, measure)
-    head.forEach((s2, i) => out.push(text(plotL, y + i * L.lead, s2, { size, fill: INK, opacity: 0.72 })))
-    y += 14 + (head.length - 1) * L.lead
+    return null
   }
 
-  // --- lay the rows out ----------------------------------------------------
-  const rows = measured.map((k) => {
-    const names = k.pages.map((q) => title(q.article))
-    const room = side ? L.labelW : plotW - L.dateW - 14
-    const lines = wrapList(names, room, size, measure)
-    const figH = 2 * L.radius + 10
-    const h = side
-      ? Math.max(figH + 12, lines.length * L.lead + 18)
-      : lines.length * L.lead + 8 + figH
-    return { k, lines, h, figH }
+  // --- the cells, ordered by how closely the pages moved --------------------
+  const measured = c.constellations
+    .filter((k) => k.median !== null && k.pages.filter((p) => p.track).length >= 2)
+    .sort((a, b) => b.median - a.median)
+  const specs = measured.map((k) => {
+    const pages = k.pages.filter((p) => p.track).sort((a, b) => b.peak - a.peak)
+    return {
+      head: k.date,
+      names: pages.map((p) => title(p.article)),
+      tieText: k.median.toFixed(3),
+      colour: ramp(Math.max(0, k.median)),
+      tracks: pages.map((p) => decodeTrack(p.track, clip)),
+      // A page of the group with no year of readings is named rather than dropped, so
+      // the cell is never quietly short of the group it stands for.
+      short: k.pages.filter((p) => !p.track).length
+        ? 'no year of readings: ' + k.pages.filter((p) => !p.track).map((p) => title(p.article)).join(', ')
+        : null,
+      clip,
+    }
   })
-  const rowsTop = y
-  let cursor = rowsTop
-  for (const r of rows) { r.y = cursor; cursor += r.h }
-  const rowsBottom = cursor
-
-  // The region a pair with no relationship occupies, carried down the whole sheet.
-  const bandTop = side ? rowsTop - 12 : rowsTop - 6
-  out.push(rect(x(c.bond.p05), bandTop, x(c.bond.p95) - x(c.bond.p05), rowsBottom + 16 - bandTop,
-    { fill: ALONE, opacity: 0.1 }))
-  const edges = [c.bond.p05, c.bond.p95]
-  if (side) {
-    for (const e of edges) out.push(line(x(e), bandTop, x(e), rowsBottom + 16, { stroke: INK, width: 1, dash: '2 4', opacity: 0.42 }))
-  } else {
-    // Stacked, the page names sit over the band, so the two edges are drawn only
-    // across each row's own figure strip rather than through its label.
-    for (const r of rows) {
-      const t0 = r.y + r.lines.length * L.lead + 2, t1 = t0 + r.figH + 4
-      for (const e of edges) out.push(line(x(e), t0, x(e), t1, { stroke: INK, width: 1, dash: '2 4', opacity: 0.42 }))
+  // The two controls, drawn as cells rather than argued in a caption. Each is the pair
+  // of its bucket whose tie sits closest to that bucket's median, so it is the typical
+  // case and not a chosen one.
+  const controls = [['near', 'within a fortnight'], ['far', 'no shared date']].map(([key, head]) => {
+    const cp = c.bond.controls && c.bond.controls[key]
+    if (!cp) return null
+    const tracks = [trackOf(cp.a), trackOf(cp.b)]
+    if (tracks.some((t) => !t)) return null
+    return {
+      head, names: [title(cp.a), title(cp.b)], tieText: cp.r.toFixed(3),
+      colour: ramp(Math.max(0, cp.r)), tracks, clip, control: true,
     }
-  }
+  }).filter(Boolean)
 
-  for (const r of rows) {
-    const { k, lines } = r
-    const pages = k.pages.filter((q) => q.measured)
-    const rOf = (a, b) => k.edges.find((e) => (e.a === a && e.b === b) || (e.a === b && e.b === a)).r
-    const pos = stress(pages, (a, b) => L.sep * (1 - rOf(pages[a].article, pages[b].article)))
-    const cx = x(k.median)
-    const figCy = side ? r.y + r.h / 2 : r.y + lines.length * L.lead + 4 + r.figH / 2
-    const at = (idx) => [cx + pos[idx][0], figCy + pos[idx][1] * 0.6]
-
-    // A page whose tie cannot be measured still had the record day: drawn hollow and
-    // tied to the figure with a broken stub, so the row is not silently short.
-    const missing = k.pages.filter((q) => !q.measured)
-    const leftMost = Math.min(...pages.map((q, idx) => at(idx)[0] - discR(q.peak)))
-    const step = Math.max(22, 1.6 * L.radius)
-    const holes = missing.map((q, j) => [leftMost - 8 - discR(q.peak) - j * step, figCy])
-    holes.forEach(([hx, hy], j) => {
-      out.push(line(hx + discR(missing[j].peak), hy, j ? holes[j - 1][0] - discR(missing[j - 1].peak) : leftMost, hy,
-        { stroke: INK, width: 1.2, dash: '2 3', opacity: 0.45 }))
-    })
-
-    out.push('<g style="mix-blend-mode:multiply">')
-    for (const e of k.edges) {
-      const ia = pages.findIndex((q) => q.article === e.a), ib = pages.findIndex((q) => q.article === e.b)
-      const [ax, ay] = at(ia), [bx, by] = at(ib)
-      out.push(path(band(ax, ay, bx, by, bandW(e.r)), { fill: ramp(Math.max(0, e.r)), opacity: 0.52 }))
-    }
-    out.push('</g>')
-    // Discs sit on top of the bands, each with a surface ring so two that overlap
-    // still read as two pages.
-    pages.forEach((q, idx) => {
-      const [px, py] = at(idx)
-      out.push(circle(px, py, discR(q.peak), { fill: ramp(Math.max(0, k.median)), opacity: 0.74, stroke: WHITE, width: 1.6 }))
-    })
-    holes.forEach(([hx, hy], j) => out.push(circle(hx, hy, discR(missing[j].peak), { fill: WHITE, stroke: INK, width: 1, opacity: 0.42 })))
-
-    if (side) {
-      out.push(text(plotL - 14, figCy + size / 3, k.date, { size, anchor: 'end', fill: INK, opacity: 0.55 }))
-      const top = r.y + (r.h - lines.length * L.lead) / 2 + size
-      lines.forEach((s, j) => out.push(text(L.labelX, top + j * L.lead, s, { size, fill: INK, opacity: 0.88 })))
-    } else {
-      out.push(text(plotR, r.y + size, k.date, { size, anchor: 'end', fill: INK, opacity: 0.55 }))
-      lines.forEach((s, j) => out.push(text(plotL, r.y + size + j * L.lead, s, { size, fill: INK, opacity: 0.88 })))
-    }
-  }
-  y = rowsBottom + 26
-
-  // --- the two that cannot be measured. A missing reading is not a zero. -----
+  // --- what a cell is, said once above the grid ------------------------------
+  let y = size + 4
+  const capW = W - 2 * pad
+  const cap = wrapWords('THE YEAR AFTER THE RECORD DAY, ONE CELL PER GROUP', capW, size, measure, 600, 0.9)
+  cap.forEach((s, i) => out.push(text(pad, y + i * L.lead, s, { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 })))
+  y += (cap.length - 1) * L.lead + 8
+  const how = wrapWords(
+    'the largest page of a group rises above its line and the second falls below it, one day at a time from day ' +
+    c.tracks.from + ' to day ' + c.tracks.to + ' after the record day. a group read unusually on the same days ' +
+    'closes into one shape with two matching halves. a third or fourth page rides behind, paler.',
+    capW, size, measure)
+  how.forEach((s, i) => out.push(text(pad, y + size + i * L.lead, s, { size, fill: INK, opacity: 0.6 })))
+  y += how.length * L.lead + 8
+  const ord = wrapWords('the cells run from the group whose pages moved together most down to the two controls ' +
+    'at the foot, which are drawn on the same geometry. the figure at the right of a cell is its tie.',
+    capW, size, measure)
+  ord.forEach((s, i) => out.push(text(pad, y + size + i * L.lead, s, { size, fill: INK, opacity: 0.6 })))
+  y += ord.length * L.lead + 14
   out.push(line(pad, y, W - pad, y, { stroke: RULE, width: 1 }))
-  y += 16 + size
-  out.push(text(pad, y, 'NO MEASUREMENT', { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 }))
-  y += 14
-  for (const k of unmeasured) {
-    const r = Math.max(...k.pages.map((q) => discR(q.peak)))
-    const cy = y + r + 2
-    k.pages.forEach((q, j) => out.push(circle(pad + r + j * (2 * r + 10), cy, discR(q.peak), { fill: WHITE, stroke: INK, width: 1, opacity: 0.42 })))
-    const tx = pad + k.pages.length * (2 * r + 10) + 6
-    const room = W - pad - tx
-    const head = k.date + '   ' + k.pages.map((q) => title(q.article)).join(' + ')
-    const note = k.pages.some((q) => q.renamed)
-      ? 'one page was renamed, so its readings after the move measure the move'
-      : 'the record day is too recent for a year of readings'
-    const headLines = wrapList([head], room, size, measure)
-    const noteLines = wrapList([note], room, size, measure)
-    headLines.forEach((s, j) => out.push(text(tx, y + size + j * L.lead, s, { size, fill: INK, opacity: 0.8 })))
-    noteLines.forEach((s, j) => out.push(text(tx, y + size + (headLines.length + j) * L.lead, s, { size, fill: INK, opacity: 0.5 })))
-    y += Math.max(2 * r + 12, (headLines.length + noteLines.length) * L.lead + 12)
+  y += 22
+
+  // --- lay the grid out ------------------------------------------------------
+  // The controls start a fresh row rather than filling the tail of the last group row,
+  // so they cannot be mistaken for two more groups.
+  const rows = []
+  for (let i = 0; i < specs.length; i += cols) rows.push(specs.slice(i, i + cols))
+  for (let i = 0; i < controls.length; i += cols) rows.push(controls.slice(i, i + cols))
+  let cells = 0
+  for (const row of rows) {
+    const drawn = row.map((s, j) => ({ s, c: cell(L, pad + j * (cellW + gut), y, s, measure) }))
+    const h = Math.max(...drawn.map((r) => r.c.h))
+    if (row[0].control) {
+      out.push(rect(pad - 10, y - 12, W - 2 * pad + 20, h + 12, { fill: RULE, opacity: 0.18, rx: 3 }))
+    }
+    drawn.forEach((r) => out.push(r.c.body))
+    cells += drawn.length
+    y += h + (L.phone ? 16 : 22)
   }
 
-  // --- legend ---------------------------------------------------------------
-  //
-  // Four cells, laid into four, two or one column by the room there is. Inside a line the
-  // figures start on one baseline and the captions on another, so a head that wraps does
-  // not drop its own cell out of step with its neighbours; a folded column is a line of
-  // one and inherits nothing.
-  y += 16
-  out.push(line(pad, y, W - pad, y, { stroke: RULE, width: 1 }))
-  y += 16
-  const cols = W >= 1180 ? 4 : W >= 760 ? 2 : 1
-  const colW = (W - 2 * pad - (cols - 1) * 28) / cols
-  const big = c.constellations.flatMap((k) => k.pages).sort((a, b) => b.peak - a.peak)[0]
-  const small = c.constellations.flatMap((k) => k.pages).sort((a, b) => a.peak - b.peak)[0]
-
-  const cells = [
-    {
-      head: 'A DISC IS A PAGE',
-      figH: 2 * discR(big.peak) + 6,
-      draw: (cx0, cy0) => {
-        const rb = discR(big.peak), rs = discR(small.peak)
-        return circle(cx0 + rb, cy0 + rb, rb, { fill: INK, opacity: 0.13, stroke: WHITE, width: 1.6 }) +
-          circle(cx0 + 2 * rb + rs + 18, cy0 + rb, rs, { fill: INK, opacity: 0.13, stroke: WHITE, width: 1.6 })
-      },
-      caption: 'its area is the readers it took that day, ' + (small.peak / 1e6).toFixed(1) + 'm to ' + (big.peak / 1e6).toFixed(1) + 'm',
-    },
-    {
-      head: 'THE GAP IS HOW FAR APART THEY STAYED',
-      figH: 30 + size,
-      draw: (cx0, cy0, w) => {
-        const g = []
-        const shown = [0.9, 0.4, 0.05]
-        const slot = w / shown.length
-        shown.forEach((r, i2) => {
-          const gy = cy0 + 11, gx = cx0 + i2 * slot + 4
-          const d = Math.min(L.sep * (1 - r), slot - 34)
-          g.push('<g style="mix-blend-mode:multiply">' + path(band(gx, gy, gx + d, gy, bandW(r)), { fill: ramp(r), opacity: 0.52 }) + '</g>')
-          g.push(circle(gx, gy, 10, { fill: ramp(r), opacity: 0.74, stroke: WHITE, width: 1.6 }))
-          g.push(circle(gx + d, gy, 10, { fill: ramp(r), opacity: 0.74, stroke: WHITE, width: 1.6 }))
-          g.push(text(gx - 10, gy + 18 + size, r.toFixed(2), { size, fill: INK, opacity: 0.6 }))
-        })
-        return g.join('')
-      },
-      caption: 'left, still moving together; right, moving apart',
-    },
-    {
-      head: 'THE PALE BAND',
-      figH: 46,
-      draw: (cx0, cy0, w) => {
-        const lsc = tieScale(cx0, cx0 + w)
-        const l0 = Math.max(cx0, lsc(c.bond.p05)), r0 = Math.min(cx0 + w, lsc(c.bond.p95))
-        return rect(l0, cy0, r0 - l0, 46, { fill: ALONE, opacity: 0.1 }) +
-          [l0, r0].map((e) => line(e, cy0, e, cy0 + 46, { stroke: INK, width: 1, dash: '2 4', opacity: 0.42 })).join('')
-      },
-      caption: 'where ' + bandNote(c) + ' sit, ' + c.bond.p05 + ' to ' + c.bond.p95,
-    },
-    {
-      head: 'THE TWO TICK FIELDS',
-      figH: 46,
-      draw: (cx0, cy0, w) => {
-        const lsc = tieScale(cx0, cx0 + w)
-        return ticks(c.bond.farValues.filter((_, i2) => i2 % 3 === 0), cy0, 20, ALONE, lsc, cx0, cx0 + w) +
-          ticks(c.bond.nearValues, cy0 + 26, 16, NEAR, lsc, cx0, cx0 + w)
-      },
-      caption: 'one tick is one pair. no shared date, half at ' + c.bond.far.median +
-        '; within a fortnight, half at ' + c.bond.near.median,
-    },
-  ]
-  for (const cl of cells) {
-    cl.headLines = wrapWords(cl.head, colW, size, measure, 600, 0.9)
-    cl.capLines = wrapList([cl.caption], colW, size, measure)
+  // --- the groups with no measurable tie. A missing reading is not a zero. ----
+  const unmeasured = c.constellations.filter((k) => k.median === null).sort((a, b) => a.date.localeCompare(b.date))
+  if (unmeasured.length) {
+    y += 4
+    out.push(line(pad, y, W - pad, y, { stroke: RULE, width: 1 }))
+    y += 16 + size
+    out.push(text(pad, y, 'NO MEASUREMENT', { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 }))
+    y += 12
+    for (const k of unmeasured) {
+      const note = k.pages.some((q) => q.renamed)
+        ? 'one page was renamed, so its readings after the move measure the move'
+        : 'the record day is too recent for a year of readings'
+      const head = k.date + '   ' + k.pages.map((q) => title(q.article)).join(' + ')
+      const hl = wrapList([head], capW, size, measure)
+      const nl = wrapList([note], capW, size, measure)
+      hl.forEach((s, j) => out.push(text(pad, y + size + j * L.lead, s, { size, fill: INK, opacity: 0.8 })))
+      nl.forEach((s, j) => out.push(text(pad, y + size + (hl.length + j) * L.lead, s, { size, fill: INK, opacity: 0.5 })))
+      y += (hl.length + nl.length) * L.lead + 10
+    }
   }
-  let bandY = y
-  for (let i = 0; i < cells.length; i += cols) {
-    const line0 = cells.slice(i, i + cols)
-    const heads = Math.max(...line0.map((cl) => cl.headLines.length))
-    const figs = Math.max(...line0.map((cl) => cl.figH))
-    const figTop = bandY + heads * L.lead + 10
-    const capTop = figTop + figs + 12 + size
-    line0.forEach((cl, j) => {
-      const cx0 = pad + j * (colW + 28)
-      cl.headLines.forEach((t, k) => out.push(text(cx0, bandY + size + k * L.lead, t, { size, weight: 600, tracking: 0.9, fill: INK, opacity: 0.72 })))
-      out.push(cl.draw(cx0, figTop, colW))
-      cl.capLines.forEach((t, k) => out.push(text(cx0, capTop + k * L.lead, t, { size, fill: INK, opacity: 0.6 })))
-    })
-    bandY = capTop + Math.max(...line0.map((cl) => cl.capLines.length)) * L.lead + 14
-  }
-  y = bandY
 
-  const label = c.groups.inCast + ' of the ' + c.groups.total + ' biggest reading days in the record are shared by two, three or four pages, in ' +
-    c.groups.casts + ' groups. Each group is drawn on a ruler of how closely its pages moved for the year after; half the same-day pairs sit at ' +
-    c.bond.same.median + ' against ' + c.bond.far.median + ' for pairs that shared no date.'
-  return { width: W, height: Math.ceil(y), body: out.join(''), label, layout: L }
+  const label = c.groups.inCast + ' of the ' + c.groups.total + ' biggest reading days in the record are shared by two, ' +
+    'three or four pages, in ' + c.groups.casts + ' groups. Each group is drawn as the year that followed, its largest ' +
+    'page above a line and its second below, so a group that kept moving together closes into one matching shape. Half ' +
+    'the same-day pairs sit at ' + c.bond.same.median + ' against ' + c.bond.far.median + ' for pairs that shared no date.'
+  return { width: W, height: Math.ceil(y + 4), body: out.join(''), label, layout: L, cells }
 }
 
 export const heroSvg = (c, W, env) => {

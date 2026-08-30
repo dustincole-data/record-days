@@ -110,7 +110,16 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
           {' '}{c.definitions.sharedMin} dates both pages were read on. {c.bond.rows} of the
           {' '}{c.groups.total} pages carry a series long enough to measure.
         </li>
-        <li>{c.bond.aboveP95} of the {c.bond.same.n} same-day pairs sit above the pale band.</li>
+        <li>
+          {c.bond.aboveP95} of the {c.bond.same.n} same-day pairs sit above the middle {c.bond.band}% of the
+          pairs that shared no date, which runs from {c.bond.p05} to {c.bond.p95}.
+        </li>
+        <li>
+          A cell draws each page's readings against the middle of its own
+          {' '}{2 * c.definitions.half + 1} days, the same quantity the tie is taken on. For drawing only, a
+          day is clipped at {c.tracks.clip} either side of nought, which touches {c.tracks.clippedShare}% of
+          the {num(c.tracks.readings)} readings on the sheet.
+        </li>
         <li>
           Redrawing every record date inside its own year, its own month and its own weekday,
           {' '}{num(c.groups.null.draws)} times, puts {c.groups.null.expected} rows in a group rather than
@@ -198,7 +207,6 @@ const og = new URL('/og/cast.png', Astro.site ?? SITE).href
       <ul class="notes">
         <li>
           The same {c.bond.same.n} pairs at every row, so nothing changes between the rows except the shift.
-          The ruler is the one the first sheet uses.
         </li>
         <li>
           The near-miss control says it from the other side: pairs whose record days were 1 to

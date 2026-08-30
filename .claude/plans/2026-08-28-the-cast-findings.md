@@ -462,3 +462,107 @@ on the vercel.app project url instead.
 `dataset.json` untouched. `public/og/cast.png` untouched and still 79,587 bytes; the card is
 a standalone composition and carries none of the cut copy. The seven untracked files from
 the dead anniversary premise were left exactly as found.
+
+---
+
+# HERO REBUILT — 2026-08-30
+
+Dustin, on the deepen pass: *"Charts still don't read cold, the whole thing does not make
+sense as a chart concept. need a new idea for hero. also plain and ugly."* Four options were
+built on real data and put up; he picked the mirror grid.
+
+## What was actually wrong with the old hero
+
+Not the labels. **The axis lied.** A row sat at the group's median tie on the ruler, roughly
+500px per 1.0. The gap between two discs *inside* that row was the per-pair tie at
+`L.sep`, roughly 78px per 1.0. Same visual channel, two quantities, two scales, so no
+disc's x position was a readable value and the ruler was only true for a row centre that
+was never drawn. Disc area carried a third quantity, peak readers, that no part of the
+claim rests on.
+
+Second, larger fault: **the claim is co-movement over a year and nothing on the page ever
+showed a reading.** Five sheets, zero time series, roughly 431 daily values a row sitting
+unused on disk. The reader was asked to take the whole finding on a coefficient.
+
+## New theme sentence
+
+**"The year is the mark: a claim about days is drawn as the days, and a coefficient never
+stands in for the picture it came from."**
+
+It decides: the hero is the residual tracks themselves at daily resolution and unsmoothed,
+one ramp carries the tie across the whole piece, and the grid reflows to three, two or one
+column rather than shrinking. It rejects the obvious move, which is the ranked ladder that
+shipped: 311 days of evidence compressed to one dot, with co-movement taken on trust. The
+old sentence, "a sheet, not a poster: the ruler is the page and the page is the ruler", is
+retired with the mark it produced; it is what made the piece grey and thin.
+
+## The mark
+
+`src/lib/marks/hero.js`, rewritten. One cell per group. The group's largest page is filled
+**upward** from the cell's line and its second **downward**, day 30 to day 340 after the
+shared record day, on the same residual the tie is computed from. A group read unusually on
+the same days closes into one shape with two matching halves; a group that went its own way
+does not. A third or fourth page rides behind at lower opacity on alternating sides.
+
+The mirror is the whole idea and it was not obvious: the first three mocks drew every page
+of a group identically and **every group looked like the same noise**, which is precisely
+the failure being replaced. Symmetry is the only channel that survives at 1.3px a day.
+
+Cells are ordered by tie, so the sheet runs violet and matched at the head to amber and
+ragged at the foot. The last row is the two controls, banded: the pair whose record days
+were within a fortnight, and the pair that shared no record day, each the pair of its bucket
+whose tie sits closest to that bucket's own median, so it is the typical case rather than a
+chosen one. They are drawn on identical geometry, so the comparison is the picture.
+
+Radial was built and **killed**: the ring compresses the inward half and matching halves are
+not detectable by eye, so tied and untied plates looked alike. That is the same sin, so it
+went.
+
+## Data change
+
+`src/lib/findings.js` now emits the track the hero draws, because a mark cannot redraw
+client-side off a file that does not carry it.
+
+- `CAST_TRACK_CLIP = 0.42` and `trackBytes()`: one byte a day over days 30 to 340. Byte 0 is
+  a day with no reading and stays a gap; 1 to 255 is the residual clipped to the clip either
+  side of nought. **The byte is a drawn height, not a reading.**
+- `constellations[].pages[].track` carries it; `tracks` carries the clip, the span, and the
+  share of readings the clip touches, **8.28% of 58,597**, so the drawing decision is stated
+  on the page rather than hidden.
+- `bond.controls.{near,far}` names the two control pairs by the rule above.
+- `cast.json` 83KB to 101KB. `dataset.json` untouched.
+
+## What this costs, stated
+
+The old hero **carried findings 6 and 7** as legibility rather than as sections: 6, bigger
+casts sit tighter, and 7, core and fringe, which lived in the per-edge band widths inside
+each figure. The new cell prints one tie for the whole group and no per-pair value, so
+**both are dropped**. They are not killed by data; they have lost their home.
+
+**Converted: 7 of 12.** Findings 8, 9 and 12 remain unbuilt and out of scope. Findings 6 and
+7 are now open again. Option D from the selection round, the ladder with the per-pair gap
+encoding deleted and every pair drawn as its own dot on one honest ruler, carries both and
+was built as a mock; it is the obvious second beat if he wants them back.
+
+## Also changed
+
+- `lib.js`: `decodeTrack`, `runsOf`, and two more stops on the ramp (`DEEP`, `MID`). The
+  three validated inks stay the categorical set that fame, back and the control labels use;
+  the two new ones are interior stops of a continuous ramp, and the ramp's lightness still
+  runs monotonically down.
+- The hero no longer carries the tie ruler, so the shared-ruler claim between it and the lag
+  sheet is gone from `lag.js`, from `lib.js` and from the lag note on the page. The band and
+  the ruler now live only on the lag sheet, which states them itself.
+- `index.astro`: the pale-band note carries its own definition and its two percentiles, and
+  a new note states the detrend window and what the drawing clip costs.
+- `test/marks.test.js`: five assertions about discs, gaps and tick fields replaced by
+  assertions about the new mark, plus new guards on the encoding: the byte round trip to
+  within one step, a missing day never becoming a nought, the clip share held under 15%, the
+  mirror sign, the cell ordering, and both controls being drawn and named. **241 tests.**
+
+## Verification
+
+`npm test` 241 pass. `npm run gate` AUDIT CLEAN at 1440 / 820 / 390 / 320. `npm run shots`
+no horizontal scroll at six widths. `npm run interact` all pass. Every page of every group is
+still named on the sheet, including the ones that carry no year of readings, which are named
+in their own cell rather than dropped.

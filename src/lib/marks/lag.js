@@ -6,8 +6,9 @@
 // day and a third of the tie is gone; by three days and the row has fallen back into
 // the field where two unrelated pages live.
 //
-// It is drawn on the hero's ruler, at the same domain and the same ticks, so a row
-// here can be read straight up into a row there.
+// This is the sheet that carries the tie ruler and the band the strangers occupy. The
+// hero draws the year itself rather than a coefficient, so the two no longer share a
+// scale; this one states its own.
 import {
   text, line, circle, rect, ramp, clamp, advance, wrapWords, tieScale, tieTicks, svg, bandNote,
   INK, RULE, ALONE, WHITE,

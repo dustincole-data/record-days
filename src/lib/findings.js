@@ -483,6 +483,13 @@ export const NULL_SEED = 20260828
 // of the far-pair distribution. The sheet paints it, so the levels are data.
 export const BAND_LO = 0.05
 export const BAND_HI = 0.95
+// The hero draws each page's residual track, so the track has to travel in the payload
+// rather than be re-derived on the page. One byte a day: 0 is a day with no reading,
+// and 1 to 255 is the residual clipped to CAST_TRACK_CLIP either side of nought. The
+// byte is a DRAWN HEIGHT, not a reading. The clip is a drawing decision and the share
+// of readings it touches is emitted beside it, so the choice is auditable rather than
+// silent.
+export const CAST_TRACK_CLIP = 0.42
 
 const DAY_MS = 86400000
 export const epochDay = (iso) => Math.round(Date.parse(iso + 'T00:00:00Z') / DAY_MS)
@@ -539,6 +546,21 @@ export function residualSeries(event) {
     kept++
   }
   return { article: event.article, date: event.date, start: epochDay(event.date) + CAST_FROM, n, values, present, kept }
+}
+
+// The residual track as one byte a day, over the same offsets the tie is measured on.
+export function trackBytes(rs) {
+  const out = Buffer.alloc(rs.n)
+  let clipped = 0, kept = 0
+  for (let i = 0; i < rs.n; i++) {
+    if (!rs.present[i]) continue
+    const v = rs.values[i]
+    kept++
+    if (Math.abs(v) > CAST_TRACK_CLIP) clipped++
+    const t = Math.max(-1, Math.min(1, v / CAST_TRACK_CLIP))
+    out[i] = Math.max(1, Math.min(255, Math.round(128 + t * 127)))
+  }
+  return { b64: out.toString('base64'), clipped, kept }
 }
 
 // Every calendar date both rows were read on, with one row optionally shifted.
@@ -825,6 +847,7 @@ export function cast(events) {
       pages: g.pages.map((e) => ({
         article: e.article, peak: e.peak, base: e.base, lead: e.lead, kind: leadClass(e.lead),
         renamed: e.renamed, machine: Boolean(e.machine), measured: byArticle.has(e.article),
+        track: byArticle.has(e.article) ? trackBytes(byArticle.get(e.article)).b64 : null,
         elsewhere: byArticle.has(e.article)
           ? +median(usable.filter((o) => o.date !== e.date).map((o) => correlate(byArticle.get(e.article), o)).filter(Boolean).map((c) => c.r)).toFixed(3)
           : null,
@@ -932,6 +955,16 @@ export function cast(events) {
       n: machine.length,
       found: machine.map((e) => ({ article: e.article, date: e.date, peak: e.peak, ...e.machine })),
     },
+    // What the hero's tracks are, and what the drawing clip costs. Emitted so the page
+    // can state the clip and a test can hold the share it touches down.
+    tracks: (() => {
+      let clipped = 0, kept = 0
+      for (const e of usable) { const t = trackBytes(e); clipped += t.clipped; kept += t.kept }
+      return {
+        clip: CAST_TRACK_CLIP, from: CAST_FROM, to: CAST_TO, days: CAST_TO - CAST_FROM + 1,
+        readings: kept, clipped, clippedShare: +((100 * clipped) / kept).toFixed(2),
+      }
+    })(),
     groups: {
       total: events.length, inCast: member.size,
       share: +((100 * member.size) / events.length).toFixed(1),
@@ -954,6 +987,20 @@ export function cast(events) {
       pHi: +(100 * BAND_HI).toFixed(0),
       band: +(100 * (BAND_HI - BAND_LO)).toFixed(0),
       aboveP95: same.filter((p) => p.r > p95).length,
+      // The hero draws its two controls as cells rather than arguing them in a caption,
+      // so it needs a named pair from each bucket whose tracks are already in the
+      // payload. Both members must sit in some cast, and the pair is the one whose tie
+      // is closest to its own bucket median: the typical case, not a chosen one.
+      controls: (() => {
+        const pick = (rows) => {
+          const med = median(rows.map((r) => r.r))
+          const ok = rows.filter((r) => member.has(r.a) && member.has(r.b))
+          if (!ok.length) return null
+          const best = ok.slice().sort((x, y) => Math.abs(x.r - med) - Math.abs(y.r - med) || x.a.localeCompare(y.a))[0]
+          return { a: best.a, b: best.b, r: +best.r.toFixed(3) }
+        }
+        return { near: pick(near), far: pick(far) }
+      })(),
       permutation,
       withMachine: { rows: withMachine.length, far: { n: farWith.length, median: +median(farWith).toFixed(3) } },
       tokens: { kept: cleanPairs.length, median: +median(cleanPairs.map((p) => p.r)).toFixed(3), dropped: dropped.map((p) => ({ a: p.a, b: p.b, token: sharedToken(p.a, p.b), r: +p.r.toFixed(3) })) },

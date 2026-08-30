@@ -21,6 +21,14 @@ export const BOUND = '#5433B0'
 export const NEAR = '#C42E5E'
 export const ALONE = '#D6740E'
 export const WHITE = '#ffffff'
+// The hero is a page of colour rather than a grey sheet, so the ramp carries two more
+// stops than the three the palette was validated at. The validated three stay the
+// CATEGORICAL set: fame, back and the control labels still name themselves with those
+// and nothing else. These two are interior stops of a continuous ramp, where what has
+// to hold is that lightness runs monotonically down it, not that any two of them are
+// told apart by a reader.
+export const DEEP = '#2C2F8F'
+export const MID = '#8E2A86'
 
 const hex2rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
 const rgb2hex = (v) => '#' + v.map((c) => Math.round(Math.min(1, Math.max(0, c)) * 255).toString(16).padStart(2, '0')).join('')
@@ -49,9 +57,10 @@ function fromOklab([L, a, b]) {
   ].map(linearToSrgb))
 }
 
-// Amber at nothing, rose in the middle, violet at a tie. Interpolated in OKLab so
-// the lightness runs monotonically down the ramp instead of buckling in the rose.
-const STOPS = [ALONE, NEAR, BOUND].map(toOklab)
+// Amber at nothing, through rose and magenta, to violet and indigo at a tie.
+// Interpolated in OKLab so the lightness runs monotonically down the ramp instead of
+// buckling in the rose.
+const STOPS = [ALONE, NEAR, MID, BOUND, DEEP].map(toOklab)
 export function ramp(t) {
   const x = Math.min(1, Math.max(0, t)) * (STOPS.length - 1)
   const i = Math.min(STOPS.length - 2, Math.floor(x))
@@ -243,11 +252,36 @@ export function stress(nodes, dist, iterations = 600) {
   return turned.map(([x, y]) => [x - cx, y - cy])
 }
 
-// --- the one ruler two marks share -----------------------------------------
+// --- the tie ruler ---------------------------------------------------------
 //
-// The hero and the lag sheet both measure the same quantity, so they are drawn on
-// one domain with one tick set. At equal width they are pixel-identical rulers, and
-// a lag row can be read straight up into the hero's rows.
+// One domain and one tick set for every mark that draws a correlation. The lag sheet
+// is the only one that does: the hero draws the year the tie is taken from rather
+// than the tie, so it carries no ruler of its own to keep in step with this one.
+// One byte a day, back to the residual it was drawn from. 0 is a day with no reading
+// and stays null, so a gap in a series is a gap in the mark rather than a nought.
+export function decodeTrack(b64, clip) {
+  const bin = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary')
+  const out = new Array(bin.length)
+  for (let i = 0; i < bin.length; i++) {
+    const b = bin.charCodeAt(i)
+    out[i] = b === 0 ? null : ((b - 128) / 127) * clip
+  }
+  return out
+}
+
+// A run of consecutive readings. Drawing one path through a gap would invent the days
+// inside it.
+export function runsOf(v) {
+  const out = []
+  let cur = null
+  for (let i = 0; i < v.length; i++) {
+    if (v[i] === null) { cur = null; continue }
+    if (!cur) { cur = []; out.push(cur) }
+    cur.push([i, v[i]])
+  }
+  return out.filter((r) => r.length > 1)
+}
+
 // One sentence for the pale band, said the same way on both sheets that draw it. A
 // reader who meets it on the hero and again under the lag rows must not have to work out
 // that they are the same region.
