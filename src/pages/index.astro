@@ -6,6 +6,11 @@
  *    the day. This is a stopwatch, not a front page."
  *
  * What that decides, and what it throws out, is in .claude/plans/.
+ *
+ * COPY RULE, set by Dustin 2026-08-31 and binding on every heading, caption and title on
+ * this site: say plainly what the reader is looking at. No figurative headline, no phrase
+ * that has to be decoded before the graphic makes sense. A heading names the measurement;
+ * a caption says what one mark is. The numbers carry the interest, not the wording.
  */
 import plate from '../gen/plate.json'
 import { held } from '../lib/marks/held.js'
@@ -23,8 +28,8 @@ const nf = new Intl.NumberFormat('en-US')
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Record Days</title>
-    <meta name="description" content={`The ${plate.stat.all} biggest single days any English Wikipedia page has ever had, and how long the world stayed.`} />
+    <title>Wikipedia's Biggest Traffic Days</title>
+    <meta name="description" content={`${plate.stat.all} English Wikipedia pages, each shown on the single biggest traffic day it has ever had, and how long its traffic stayed high afterwards.`} />
     <link rel="canonical" href={SITE} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/martian-mono-var-latin.woff2" />
@@ -33,69 +38,78 @@ const nf = new Intl.NumberFormat('en-US')
 
   <body>
     <header class="head">
-      <h1>Record&nbsp;Days</h1>
+      <h1>Wikipedia's Biggest Traffic Days</h1>
       <p class="stand">
-        The <b>{plate.stat.all}</b> biggest single days any English Wikipedia page has ever
-        had, and how long the world stayed.
+        <b>{plate.stat.all}</b> English Wikipedia pages, each shown on the single biggest
+        traffic day it has ever had. Those days drew between
+        {' '}<b>{(plate.stat.minPeak / 1e6).toFixed(1)}</b> and
+        {' '}<b>{(plate.stat.maxPeak / 1e6).toFixed(1)}</b> million views, and they happened
+        between {plate.stat.from} and {plate.stat.to}.
       </p>
     </header>
 
     <main>
       <section id="held">
         <p class="num">01</p>
-        <h2>The world looks for about a month.</h2>
+        <h2>How long traffic stayed high after each record day</h2>
         <p class="deck">
-          Of the {plate.stat.all} record days, <b>{plate.stat.back}</b> came back to normal.
-          The middle one took <b>{plate.stat.median}</b> days.
+          <b>{plate.stat.back}</b> of the {plate.stat.all} pages returned to their normal
+          traffic level. The middle value is <b>{plate.stat.median}</b> days.
+          {' '}<b>{plate.stat.holdout + plate.stat.running}</b> never returned.
         </p>
 
         <figure class="fig" id="held-fig">
           <div class="plate-box" id="held-plate" set:html={first.svg}></div>
           <div class="tip" id="held-tip" hidden></div>
           <figcaption>
-            Days from a page's record day until it is back under twice its own quiet level and
-            holds there a week. Quiet level is the median of days {Math.abs(plate.meta.before[0])}
-            {' '}to {Math.abs(plate.meta.before[1])} before its record day. A mark's colour is
-            the axis colour where it stops, so the axis is the key.
+            Each bar is one page. It runs from that page's record day to the day its traffic
+            fell back under twice its normal level and stayed there for a week. Bars are sorted
+            shortest to longest. A bar's colour repeats its own length, so the colour strip at
+            the bottom of the chart is also the key.
           </figcaption>
         </figure>
 
         <details class="method">
           <summary>How this is measured</summary>
           <p>
-            A page's <b>quiet level</b> is the median of its daily readings from day
-            &minus;{Math.abs(plate.meta.before[0])} to day &minus;{Math.abs(plate.meta.before[1])}.
-            The census also offers days &minus;21 to &minus;8, and this site never uses it: for
-            45 rows that window is already inside the event. One definition of before, for
-            every section.
+            A page's <b>normal level</b> is the median of its daily views from
+            {' '}<b>{Math.abs(plate.meta.before[0])}</b> days before its record day to
+            {' '}<b>{Math.abs(plate.meta.before[1])}</b> days before it. The source file also
+            offers the window 21 to 8 days before, and this site never uses it: for 45 of these
+            pages traffic is already climbing by then. One definition of normal, used in every
+            section.
           </p>
           <p>
-            <b>{plate.stat.drawn}</b> of the {plate.stat.all} rows are drawn.
-            <b>{plate.stat.noQuiet}</b> have no quiet window in the thirty days the file
-            carries, so there is nothing to measure them against. Of the rest,
-            <b>{plate.stat.back}</b> came back, <b>{plate.stat.holdout}</b> were watched a full
-            year and were still above twice their own level at the end of it, and
-            <b>{plate.stat.running}</b> have a record day too recent for the file to say either
-            way. Those {plate.stat.holdout + plate.stat.running} run past the axis and fade.
+            <b>{plate.stat.drawn}</b> of the {plate.stat.all} pages are drawn.
+            <b>{plate.stat.noQuiet}</b> are left out because their traffic was already high
+            through the whole month before their record day, so there is no normal level to
+            measure them against. Of the {plate.stat.drawn} drawn,
+            {' '}<b>{plate.stat.back}</b> returned to normal,
+            {' '}<b>{plate.stat.holdout}</b> were tracked for a full year afterwards and were
+            still above twice their normal level at the end of it, and
+            {' '}<b>{plate.stat.running}</b> had a record day too recent for the file to say
+            either way. Those last {plate.stat.holdout + plate.stat.running} are the block at
+            the bottom of the chart; their bars run past the axis and fade out.
           </p>
           <p>
-            The FIFA World Cup's one day is the softest number here. A tournament that runs
-            longer than a month has no quiet window inside the thirty days before its final, so
-            its "quiet" level is partly the tournament itself, at
-            {' '}{nf.format(plate.rows.find((r) => r.a === 'FIFA_World_Cup').peak)} readings on
-            the day. The Academy Awards and WrestleMania rows sit at the same wall for the same
-            reason.
+            The FIFA World Cup bar, at one day, is the least reliable number on the chart. A
+            tournament runs longer than a month, so the window used for its normal level sits
+            inside the tournament rather than before it. That makes its normal level too high
+            and its bar too short. Its record day was
+            {' '}{nf.format(plate.rows.find((r) => r.a === 'FIFA_World_Cup').peak)} views. The
+            Academy Awards and WrestleMania bars are short for the same reason.
           </p>
           <p>
-            All {plate.stat.all} rows were selected for having spiked and then fallen by day
-            seven, so "they rise and fall" is the definition of this set and is not a finding
-            in it. Nothing here rests on that shape: every number above is read at day
-            &minus;1 or after day 180, which the selection never looks at.
+            These {plate.stat.all} pages were selected for having a huge day and then falling
+            back from it within a week. So "traffic spikes and then falls" is how the set was
+            chosen, not something this chart found. Nothing on this page rests on that: every
+            number here is read either the day before the record day or more than 180 days
+            after it, and the selection looks at neither.
           </p>
           <p>
-            Below about 640 pixels wide the shortest marks are drawn at a floor of 1.2 pixels,
-            so one day and two days are not separable there. Every other mark on the plate is
-            its true length.
+            On a screen narrower than about 640 pixels the shortest bars are drawn at a
+            minimum width of 1.2 pixels, so one day and two days cannot be told apart there.
+            Every other bar is drawn at its true length.
           </p>
         </details>
 
@@ -129,7 +143,7 @@ const nf = new Intl.NumberFormat('en-US')
         letter-spacing: -0.02em;
         margin: 0;
       }
-      .stand { margin: 10px 0 0; max-width: 46ch; color: var(--muted); font-size: 16px; }
+      .stand { margin: 10px 0 0; max-width: 58ch; color: var(--muted); font-size: 16px; }
       .stand b { color: var(--ink); font-weight: 500; }
 
       section { padding: 44px 24px 8px; }
@@ -138,7 +152,7 @@ const nf = new Intl.NumberFormat('en-US')
         font-size: 14px; font-weight: 600; letter-spacing: 0.06em;
         color: var(--accent); margin: 0 0 10px;
       }
-      h2 { font-size: 30px; font-weight: 500; letter-spacing: -0.02em; margin: 0; max-width: 36ch; }
+      h2 { font-size: 30px; font-weight: 500; letter-spacing: -0.02em; margin: 0; max-width: 52ch; }
       .deck { margin: 10px 0 26px; max-width: 52ch; color: var(--muted); font-size: 17px; }
       .deck b { color: var(--ink); font-weight: 500; font-family: 'Martian Mono', ui-monospace, monospace; font-size: 15px; }
 

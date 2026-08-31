@@ -111,6 +111,11 @@ const out = {
     holdout: holdout.length,
     running: running.length,
     noQuiet: noQuiet.length,
+    // what a reader has to be told to know WHICH 220 pages these are
+    minPeak: Math.min(...events.map((e) => e.peak)),
+    maxPeak: Math.max(...events.map((e) => e.peak)),
+    from: ev.meta.window.start.slice(0, 4),
+    to: ev.meta.window.end.slice(0, 4),
   },
   stops,
   axis: { max: 345, ticks: [0, 7, 30, 90, 180, 270, 340] },
@@ -149,6 +154,15 @@ check('past 100 days', out.stat.over100, 27)
 check('watched a full year and still not back', holdout.length, 32)
 check('the file ends first', running.length, 3)
 check('no quiet window to measure against', noQuiet.length, 6)
+
+// The page says these days drew between 1.4 and 15.0 million views. That sentence is what
+// tells a reader which 220 pages these are, so it is guarded like any other printed number.
+check('smallest record day', out.stat.minPeak, 1444398)
+check('largest record day', out.stat.maxPeak, 14954133)
+check('smallest, printed as the page prints it', (out.stat.minPeak / 1e6).toFixed(1), '1.4')
+check('largest, printed as the page prints it', (out.stat.maxPeak / 1e6).toFixed(1), '15.0')
+check('the largest is Charlie Kirk', events.slice().sort((a, b) => b.peak - a.peak)[0].a, 'Charlie_Kirk')
+check('the years the page names', [out.stat.from, out.stat.to], ['2015', '2026'])
 
 // every row the plate names
 check('FIFA World Cup', by('FIFA_World_Cup').dur, 1)

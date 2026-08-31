@@ -77,13 +77,15 @@ export function held(P, W) {
   const stops = P.stops
   const named = phone ? NARROW : new Set(P.named)
 
-  const fig = (r) => r.kind === 'back' ? `${r.dur} day${r.dur === 1 ? '' : 's'}` : 'not back'
+  // The figure column is narrow, and the caption directly above the band already says these
+  // pages never returned to normal, so the column only has to carry the one word.
+  const fig = (r) => r.kind === 'back' ? `${r.dur} day${r.dur === 1 ? '' : 's'}` : 'never'
   const tint = (r) => r.kind === 'back' ? ink(r.dur, stops) : HEX[HEX.length - 1]
   const endX = (r) => r.kind === 'back' ? Math.max(x(0) + floor, x(r.dur)) : x(P.stat.max)
 
   // The break before the pages that never came back has to hold the caption that sits in it,
   // and that caption wraps to two lines on a phone.
-  const bandText = `${P.stat.holdout + P.stat.running} never came back, and ${P.stat.holdout} of those were watched a full year`
+  const bandText = `${P.stat.holdout + P.stat.running} pages never returned to normal. ${P.stat.holdout} of those were tracked for a full year`
   const bandLines = wrap(bandText, phone ? Math.floor((W - M.r) / (fs * 0.53)) : 200)
   // On a narrow plate the longest returner is labelled inside that break as well.
   const inBreak = phone
@@ -121,7 +123,7 @@ export function held(P, W) {
       `L${x1.toFixed(2)} ${(top + (rowH + h1) / 2).toFixed(2)}` +
       `L${x0.toFixed(2)} ${(top + h0).toFixed(2)}Z`
     const v = back ? fig(r)
-      : (r.kind === 'holdout' ? 'still above a year on' : 'the file ends first')
+      : (r.kind === 'holdout' ? 'never returned' : 'too recent to say')
     marks.push(`<path d="${d}" fill="${back ? ink(r.dur, stops) : 'url(#onward)'}" ` +
       `data-t="${esc(r.t)}" data-v="${esc(v)}"/>`)
   }
@@ -135,7 +137,7 @@ export function held(P, W) {
   const notes = [
     `<line x1="${mx.toFixed(2)}" y1="${(M.t - 8).toFixed(2)}" x2="${mx.toFixed(2)}" y2="${lastBack.toFixed(2)}" stroke="#fff" stroke-width="3"/>`,
     `<line x1="${mx.toFixed(2)}" y1="${(M.t - 8).toFixed(2)}" x2="${mx.toFixed(2)}" y2="${lastBack.toFixed(2)}" stroke="${ACCENT}" stroke-width="1.7"/>`,
-    T('m-note', mx + 7, M.t - 13, ACCENT, null, `median ${P.stat.median} days`),
+    T('m-note', mx + 7, M.t - 13, ACCENT, null, `middle value ${P.stat.median} days`),
   ]
 
   // ---- the names -----------------------------------------------------------
@@ -187,7 +189,7 @@ export function held(P, W) {
 
   const svg =
     `<svg class="plate" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" ` +
-    `aria-label="${P.stat.drawn} of the 220 biggest reading days on Wikipedia, one bar each, sorted by how many days the page took to come back under twice its own quiet level. The median is ${P.stat.median} days, the shortest is ${P.stat.min} and the longest is ${P.stat.max}. ${P.stat.holdout + P.stat.running} had not come back at all.">` +
+    `aria-label="Bar chart. ${P.stat.drawn} English Wikipedia pages, one bar each, sorted shortest to longest. A bar shows how many days that page took to return to its normal traffic level after its biggest day. The middle value is ${P.stat.median} days, the shortest ${P.stat.min} and the longest ${P.stat.max}. ${P.stat.holdout + P.stat.running} pages never returned and their bars run off the right edge.">` +
     `<defs><linearGradient id="ramp" gradientUnits="userSpaceOnUse" x1="${ax0}" x2="${ax1}">${rampStops}</linearGradient>` +
     `<linearGradient id="onward" gradientUnits="userSpaceOnUse" x1="${ax0}" x2="${onEnd}">` +
     `<stop offset="0%" stop-color="${HEX[4]}"/>` +

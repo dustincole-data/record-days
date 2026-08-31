@@ -259,3 +259,54 @@ to an italic serif. Both were invisible to every other check.
   and will not until Dustin rules on it.
 
 **Converted: 1 of 7.**
+
+---
+
+## Session 3b — 2026-08-31 · MOBILE REPAIR, AND A COPY RULE
+
+Dustin, on the plate: *"it looks bad on mobile, but it looks good on the web. The words look
+really messed up on mobile, and the graph gets all chopped up."* Then: *"the titles and
+descriptions of everything must not try to be witty or creative. They must specifically spell
+out exactly what people are looking at."*
+
+### The three mobile bugs, and the rule each produced
+
+| Bug | The rule |
+|---|---|
+| Every named row got vertical clearance so its label could sit above it, which on a phone turned the top 40% of the plate into five stubs floating in white | **No row moves for a label.** Names go in the empty corner the sorted curve already leaves, with a leader back to the mark. On a narrow plate that column sits inside the corner rather than beside the plot, and only the short wall is named there |
+| A label was one string in two faces — a Schibsted name run into a wide mono figure, each label starting at a different x | **Name and number are two elements and two columns.** The figure sits on an edge, the name against it |
+| Type size was set in CSS at a 639px VIEWPORT breakpoint while the mark measured a 640px PLOT-BOX breakpoint. They differ by the page margins, so from about 640 to 700 the layout was computed at 13px and rendered at 14px and a label ran outside the plate | **The code that measures the type emits its size.** No stylesheet may set a size the mark's layout depends on |
+
+Also: the band that never returned had 6px to dissolve into on a phone and ended in a hard
+edge, which reads as a measured stop. It gets a reserved 46px at every width.
+
+Checked at 320/360/390/500/620/660/700/820/1180/1440: one type size per width, nothing outside
+the plate, no overlapping labels, no page scroll.
+
+### The copy rule — binding on every beat from here
+
+**Say plainly what the reader is looking at.** No figurative headline, no phrase that has to be
+decoded before the graphic makes sense. A heading names the measurement. A caption says what
+one mark is. The numbers carry the interest, not the wording.
+
+| Was | Is |
+|---|---|
+| `Record Days` | `Wikipedia's Biggest Traffic Days` |
+| "The 220 biggest single days any English Wikipedia page has ever had, and how long the world stayed" | "220 English Wikipedia pages, each shown on the single biggest traffic day it has ever had. Those days drew between 1.4 and 15.0 million views, and they happened between 2015 and 2026." |
+| "The world looks for about a month." | "How long traffic stayed high after each record day" |
+| "Of the 220 record days, 179 came back to normal. The middle one took 28 days." | "179 of the 220 pages returned to their normal traffic level. The middle value is 28 days. 35 never returned." |
+| "Days from a page's record day until it is back under twice its own quiet level..." | "Each bar is one page. It runs from that page's record day to the day its traffic fell back under twice its normal level and stayed there for a week..." |
+| `median 28 days` (on the chart) | `middle value 28 days` |
+| `quiet level` (a coined term) | `normal level` |
+
+Two numbers are now printed that were not before, so they are guarded and in the record: the
+smallest record day, **1,444,398** views, and the largest, **14,954,133**. `npm run data` is
+**102 checks, exits 0**.
+
+The record also gained a warning the copy rule forced into the open: this is **not** "the 220
+biggest days on Wikipedia". It is the largest 220 rows that also passed the shape gate, so
+bigger single days exist that the gate excluded. Copy says "each page's own biggest day".
+
+Gate AUDIT CLEAN at 1440/820/390/320, interaction suite passes, six widths shot.
+
+**Converted: 1 of 7.**

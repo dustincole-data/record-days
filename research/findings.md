@@ -3,6 +3,14 @@
 **Premise:** These are the 220 biggest days in Wikipedia's history. For each one: who you
 were the day before, how big the day was, how long the world looked, and who you are now.
 
+**What the set is, stated the way the page states it** (added step 3, guarded in `pipeline/03`):
+220 English Wikipedia pages, each on the single biggest traffic day it has ever had. Those days
+run from **1,444,398** views (the smallest) to **14,954,133** (Charlie Kirk, 2025-09-10), and
+they fall between **2015** and **2026**. Note this is *not* "the 220 biggest days on Wikipedia":
+the set is the largest 220 rows that ALSO passed the shape gate, so bigger single days exist
+that the gate excluded. Any copy must say "each page's own biggest day", never "the biggest
+days".
+
 **Ranked for what a stranger would care about, not for what is hardest to prove.** The first
 pass ranked F4 (below) first because it is the most robust; it also needs two constructed
 metrics explained before it lands, which the standards forbid. Re-ranked 2026-08-30.
