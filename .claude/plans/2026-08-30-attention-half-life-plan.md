@@ -93,3 +93,51 @@ of its own claims across this session; each was corrected in the record and neve
 guard.
 
 **Converted: 0 of 8.**
+
+---
+
+## Session 2 — 2026-08-30 · GUARD (gate 1)
+
+Two passes, `npm run data`, **61 checks, exits 0**.
+
+- `pipeline/01_events.mjs` → `src/gen/events.json`, the per-row table all eight findings
+  draw from: 220 rows with arrival, peak, clean before-level, duration, settle ratio,
+  weekday, climbing flag and date-group.
+- `pipeline/02_claims.mjs` → `src/gen/claims.json`, the aggregates and the tests. It reads
+  01's payload rather than the raw file, so the site's totals and the site's rows cannot
+  disagree.
+
+**One definition of "before" for the whole site: days -30 to -22.** The census offers -21
+to -8 as `base` and it is not usable: 45 rows are already climbing into the event there.
+Unifying on the clean window moved four findings, and the record was corrected to match.
+
+**The guard is live, not decorative.** Shifting the before-window by two days turns it red
+across four findings and it goes green again on restore.
+
+**What the guard changed this session**
+
+| Claim | Was | Is |
+|---|---|---|
+| F3 settling higher | 90 of 196, 45.9% | **86 of 196, 43.9%** |
+| F3 Tasuku Honjo | x502.8 | **x507.9** |
+| F4 ambush / warned settle | 1.33 / 0.49 | **1.30 / 0.55** |
+| F4 significance | z 4.397, p 1.1e-5 | **z 3.587, p 3.4e-4** |
+| F5 "all ten were already climbing" | asserted | **false.** Six of the ten have no clean window anywhere in the file |
+
+Nine of the guard's own claims have failed across steps 1 and 2. Every one was corrected in
+the record; none was corrected in the guard.
+
+**Rulings made**
+
+- **F7 promoted to high.** The null it needed was run: holding each row's year, month and
+  weekday fixed and redrawing only which matching day it landed on expects **25.4** rows in
+  a group. **47** were observed, and 3 of 20,000 draws reached it. **p = 2.0e-4.**
+- **F8 killed.** Every other finding is a page measured against itself, so the qualification
+  gate cancels. F8 is a raw count compared across years and the census carries no
+  denominator for Wikipedia's own traffic. Not revivable without a total-pageviews series,
+  which `source.md` records as not pulled.
+
+**Next: step 3, theme.** One sentence that decides and excludes, and one section built for
+real in it, desktop and phone, put up together.
+
+**Converted: 0 of 7** (F8 retired by killing).
