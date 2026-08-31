@@ -16,10 +16,16 @@ import plate from '../gen/plate.json'
 import arrivalData from '../gen/arrival.json'
 import settleData from '../gen/settle.json'
 import groupsData from '../gen/groups.json'
+import artefactData from '../gen/artefact.json'
+import weekdayData from '../gen/weekday.json'
+import sharedData from '../gen/shared.json'
 import { held } from '../lib/marks/held.js'
 import { arrival } from '../lib/marks/arrival.js'
 import { settle } from '../lib/marks/settle.js'
 import { groups } from '../lib/marks/groups.js'
+import { artefact } from '../lib/marks/artefact.js'
+import { weekday } from '../lib/marks/weekday.js'
+import { shared } from '../lib/marks/shared.js'
 import { ACCENT, INK, MUTED, HAIR } from '../lib/ink.js'
 import DcdMark from '../components/DcdMark.astro'
 import { SITE } from '../lib/site.js'
@@ -28,6 +34,12 @@ const first = held(plate, 1180)
 const firstArrival = arrival(arrivalData, 1180)
 const firstSettle = settle(settleData, 1180)
 const firstGroups = groups(groupsData, 1180)
+const firstArtefact = artefact(artefactData, 1180)
+const firstWeekday = weekday(weekdayData, 1180)
+const firstShared = shared(sharedData, 1180)
+const ten = artefactData.panels.filter((p) => p.group === 'scheduled')
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const shortDate = (iso) => +iso.slice(8, 10) + ' ' + MON[+iso.slice(5, 7) - 1] + ' ' + iso.slice(0, 4)
 const w = plate.meta.window
 const nf = new Intl.NumberFormat('en-US')
 const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents only. ${w.start} to ${w.end}. Public domain, CC0.`
@@ -282,6 +294,195 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
 
         <p class="src">{src}</p>
       </section>
+      <section id="artefact">
+        <p class="num">05</p>
+        <h2>How much traffic these pages already had in the month before their record day</h2>
+        <p class="deck">
+          The source file measures each page against its traffic 21 to 8 days before the record
+          day. For <b>{artefactData.stat.climbing}</b> of the
+          {' '}{artefactData.stat.testable} pages that can be checked, traffic is already
+          climbing by then. For <b>{artefactData.stat.belowGate}</b> it is so far inside the
+          event that the file's own test reads them as never having risen at all.
+        </p>
+
+        <figure class="fig" id="artefact-fig">
+          <div class="plate-box" id="artefact-plate" set:html={firstArtefact.svg}></div>
+          <figcaption>
+            Each small chart is one page. The line is its views that day divided by its own
+            record day, on one scale shared by all twenty, so a line near the top of a panel
+            means that page was already being read almost as much as it was on its record day.
+            The two shaded bands are the two windows a normal level can be taken from: the
+            earlier band, 30 to 22 days before, is the one this page uses everywhere; the later
+            band, 21 to 8 days before, is the one the source file offers. The dashed line is the
+            level the file reads across the later band, and the second dot is day seven.
+          </figcaption>
+        </figure>
+
+        <details class="method">
+          <summary>How this is measured</summary>
+          <p>
+            The source file keeps a page only if, a week after its record day, it is still
+            visibly raised. One arm of that test is day seven divided by the median of days 21
+            to 8 before. For these {artefactData.stat.belowGate} pages that comes out
+            {' '}<b>under 1</b>, from {ten[0].t} at <b>{ten[0].gate}</b> to {ten[9].t} at
+            {' '}<b>{ten[9].gate}</b>, because the window it is divided by sits inside the event
+            rather than before it. Every one of the ten is a scheduled event:
+            {' '}{ten.map((p) => p.t).join(', ')}.
+          </p>
+          <p>
+            That is a fact about day seven, not about the record day. On the window this page
+            uses, days {Math.abs(artefactData.meta.far[0])} to
+            {' '}{Math.abs(artefactData.meta.far[1])} before, every one of those ten record days
+            is between <b>2.67</b> and <b>122</b> times its own normal level.
+          </p>
+          <p>
+            Moving the window further from the event does not always help. For
+            {' '}<b>{artefactData.stat.noCleaner}</b> of the ten the earlier window is no lower
+            than the later one, and for <b>{artefactData.stat.readsMateriallyHigher}</b> it is
+            higher: the FIFA World Cup page was read
+            {' '}<b>{nf.format(artefactData.stat.worldCupFar)}</b> times a day 30 to 22 days
+            before the final and <b>{nf.format(artefactData.stat.worldCupNear)}</b> times a day
+            21 to 8 days before it, against
+            {' '}{nf.format(artefactData.stat.worldCupPeak)} on the day. A tournament runs longer
+            than a month, so there is no quiet reading anywhere in the 30 days this file carries.
+          </p>
+          <p>
+            The bottom ten are not a hand-picked opposite. They are the ten pages in the file
+            with the least traffic the day before their record day, out of those that have a
+            usable normal level that is not already climbing. Every one of the top ten sat above
+            {' '}<b>1 percent</b> of its record day through the later window and every one of the
+            bottom ten sat below it, so the two blocks do not overlap on that reading.
+          </p>
+          <p>
+            This section is the reason every other section on this page uses days 30 to 22
+            before, and never the window the file offers.
+          </p>
+        </details>
+
+        <p class="src">{src}</p>
+      </section>
+
+      <section id="weekday">
+        <p class="num">06</p>
+        <h2>Which day of the week these record days landed on</h2>
+        <p class="deck">
+          Monday holds <b>{weekdayData.record.count[1]}</b> of the {weekdayData.stat.n} record
+          days against <b>{weekdayData.record.expect[1]}</b> expected. Tuesday holds
+          {' '}<b>{weekdayData.record.count[2]}</b>. The busiest weekday is
+          {' '}<b>{weekdayData.stat.recordSwing}</b> times the quietest; for ordinary reading on
+          these same pages it is <b>{weekdayData.stat.readingSwing}</b> times.
+        </p>
+
+        <figure class="fig" id="weekday-fig">
+          <div class="plate-box" id="weekday-plate" set:html={firstWeekday.svg}></div>
+          <figcaption>
+            The week runs left to right. Where the screen has room for it the same seven
+            values are drawn more than once, so the rhythm reads as a wave. The thick curve is how many record days landed on each
+            weekday, against how many of that weekday the eleven years hold. The thin curve is
+            how much these same pages are read on each weekday in ordinary time, against their
+            own average week. The line across the middle is where both curves would sit if
+            every weekday were the same. The dots are the seven measured values; the curve
+            between them is drawn, not measured.
+          </figcaption>
+        </figure>
+
+        <details class="method">
+          <summary>How this is measured</summary>
+          <p>
+            Expected counts come from how many of each weekday the window holds, which is
+            {' '}{weekdayData.record.expect[1]} to {weekdayData.record.expect[4]} of each across
+            {' '}{nf.format(weekdayData.meta.window.days)} days. A chi-square test on the seven
+            counts gives <b>{weekdayData.record.chi2}</b> on {weekdayData.record.df} degrees of
+            freedom, p = <b>{weekdayData.record.p}</b>.
+          </p>
+          <p>
+            Ordinary reading is measured on the same pages long after their event, on days
+            {' '}{weekdayData.meta.read[0]} to {weekdayData.meta.read[1]}. Each daily reading is
+            divided by the median of the {weekdayData.meta.span} days centred on it, so however
+            fast a page is rising or falling, only the day of the week is left. That is
+            {' '}<b>{nf.format(weekdayData.reading.readings)}</b> readings across
+            {' '}<b>{weekdayData.reading.pages}</b> pages, and the seven values are
+            {' '}{weekdayData.reading.idx.map((v, i) => weekdayData.short[i] + ' ' + v.toFixed(3)).join(', ')}.
+            Recomputing them over days {weekdayData.meta.alt[0]} to {weekdayData.meta.alt[1]}
+            {' '}moves none of them by more than 0.01, and resampling whole pages
+            {' '}{nf.format(weekdayData.meta.draws)} times puts the gap between the highest and
+            the lowest weekday between <b>{weekdayData.reading.swingCI[0]}</b> and
+            {' '}<b>{weekdayData.reading.swingCI[1]}</b>.
+          </p>
+          <p>
+            The two weeks do not line up. Record days are highest on
+            {' '}{weekdayData.stat.recordHigh} and lowest on {weekdayData.stat.recordLow};
+            ordinary reading is highest on {weekdayData.stat.readingHigh} and lowest on
+            {' '}{weekdayData.stat.readingLow}. Monday is a slightly busy reading day, by
+            {' '}<b>4</b> percent, against a <b>66</b> percent excess in record days. Tuesday,
+            the emptiest record day here, is an ordinary reading day at
+            {' '}<b>{weekdayData.stat.tuesdayReading}</b>.
+          </p>
+          <p>
+            Dates are UTC, as the source reports them, so an event that happens on a Sunday
+            evening in the United States is recorded on the Monday. Nothing here explains why
+            the counts fall this way, and nothing on this page claims a cause.
+          </p>
+        </details>
+
+        <p class="src">{src}</p>
+      </section>
+
+      <section id="shared">
+        <p class="num">07</p>
+        <h2>When each record day happened, and the days more than one page shared</h2>
+        <p class="deck">
+          <b>{sharedData.stat.inBundles}</b> of the {sharedData.stat.all} record days are not
+          one page having a day. They are two, three or four pages having the same day, on
+          {' '}<b>{sharedData.stat.bundles}</b> dates. A model that keeps every record day in its
+          own year, month and weekday expects <b>{sharedData.null.expected}</b>.
+        </p>
+
+        <figure class="fig" id="shared-fig">
+          <div class="plate-box" id="shared-plate" set:html={firstShared.svg}></div>
+          <div class="tip" id="shared-tip" hidden></div>
+          <figcaption>
+            Each dot is one page, placed left to right on the date of its record day and up the
+            page by how many views that day drew. A ring drawn around a stack of dots means
+            those pages all had their record day on the same date.
+          </figcaption>
+        </figure>
+
+        <details class="method">
+          <summary>How this is measured</summary>
+          <p>
+            Dates are lumpy on their own, and this file already knows its weekdays are uneven.
+            So the count is tested against a model that holds each record day's year, month and
+            weekday fixed and redraws only which matching day of that month it fell on. Over
+            {' '}{nf.format(sharedData.null.draws)} draws that model puts
+            {' '}<b>{sharedData.null.expected}</b> pages in a group on average, and reached
+            {' '}{sharedData.stat.inBundles} or more <b>{sharedData.null.atLeastObserved}</b>
+            {' '}times. p = <b>{sharedData.null.p.toExponential(1)}</b>.
+          </p>
+          <p>
+            The {sharedData.stat.bundles} dates are {sharedData.stat.sizes['2']} pairs,
+            {' '}{sharedData.stat.sizes['3']} threes and {sharedData.stat.sizes['4']} fours:
+          </p>
+          <ul class="roll">
+            {sharedData.bundles.map((b) => (
+              <li><i>{shortDate(b.d)}</i>{b.rows.map((r) => r.t).join(' · ')}</li>
+            ))}
+          </ul>
+          <p>
+            The vertical scale runs from {nf.format(sharedData.stat.minPeak)} to
+            {' '}{nf.format(sharedData.stat.maxPeak)} views, which are the same smallest and
+            largest record day the second section prints. Every step up it is a fixed multiple,
+            not a fixed number of views.
+          </p>
+          <p>
+            A page is in this file only if its own biggest day reached the daily top 1,000 for
+            that day, so two pages sharing a date here means both were among the most-read pages
+            on that date, not that nothing else happened.
+          </p>
+        </details>
+
+        <p class="src">{src}</p>
+      </section>
     </main>
 
     <DcdMark />
@@ -338,6 +539,14 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
       .method summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
       .method p { margin: 0 0 12px; font-size: 14px; line-height: 1.55; color: var(--muted); }
       .method b { color: var(--ink); font-weight: 500; font-family: 'Martian Mono', ui-monospace, monospace; }
+      /* The nineteen shared dates. Nineteen labels cannot be placed on the plate without
+         collisions, so the roll-call lives here instead. */
+      .roll { margin: 0 0 12px; padding: 0; list-style: none; font-size: 14px; line-height: 1.5; color: var(--muted); }
+      .roll li { margin: 0 0 3px; }
+      .roll i {
+        font-style: normal; font-family: 'Martian Mono', ui-monospace, monospace;
+        color: var(--accent); margin-right: 10px;
+      }
 
       .src { padding: 20px 24px 44px; font-size: 14px; color: var(--muted); }
 
@@ -357,7 +566,7 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
         .deck { font-size: 16px; margin-bottom: 20px; }
         .deck b { font-size: 14px; }
         .src { padding: 16px 16px 34px; font-size: 13px; }
-        figcaption, .method p, .method summary, .tip { font-size: 13px; }
+        figcaption, .method p, .method summary, .tip, .roll { font-size: 13px; }
       }
       @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
     </style>
@@ -419,8 +628,15 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
       .plate.lit .m-rows path.on,
       .plate.lit .m-rows rect.on { opacity: 1; }
 
+      /* Beat 07 draws each page as a group of two circles, a wide soft halo and a 2.8px core,
+         because a 2.8px core is not something a pointer can find. The group is the hit target
+         and the group is what lights, so the core keeps its size and the pointer keeps its room. */
+      .plate .m-rows g[data-t] { transition: opacity 120ms linear; }
+      .plate.lit .m-rows g[data-t] { opacity: 0.34; }
+      .plate.lit .m-rows g[data-t].on { opacity: 1; }
+
       @media (prefers-reduced-motion: reduce) {
-        .plate .m-rows path, .plate .m-rows rect { transition: none; }
+        .plate .m-rows path, .plate .m-rows rect, .plate .m-rows g[data-t] { transition: none; }
       }
     </style>
 
@@ -429,10 +645,16 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
       import arrivalData from '../gen/arrival.json'
       import settleData from '../gen/settle.json'
       import groupsData from '../gen/groups.json'
+      import artefactData from '../gen/artefact.json'
+      import weekdayData from '../gen/weekday.json'
+      import sharedData from '../gen/shared.json'
       import { held } from '../lib/marks/held.js'
       import { arrival } from '../lib/marks/arrival.js'
       import { settle } from '../lib/marks/settle.js'
       import { groups } from '../lib/marks/groups.js'
+      import { artefact } from '../lib/marks/artefact.js'
+      import { weekday } from '../lib/marks/weekday.js'
+      import { shared } from '../lib/marks/shared.js'
 
       // Draw at the width the reader actually has. The server render is one width and any
       // other width would be that drawing stretched, which moves every label off its gate size.
@@ -441,6 +663,9 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
         ['arrival-plate', arrivalData, arrival],
         ['settle-plate', settleData, settle],
         ['groups-plate', groupsData, groups],
+        ['artefact-plate', artefactData, artefact],
+        ['weekday-plate', weekdayData, weekday],
+        ['shared-plate', sharedData, shared],
       ]
       for (const [id, data, mark] of PLATES) {
         const box = document.getElementById(id)
@@ -457,10 +682,10 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
         new ResizeObserver(draw).observe(box)
       }
 
-      // Pointing at a mark lights it and dims its field. Only the two plates whose marks are
-      // one page each carry it: a tick in a rug and a shape over forty pages are not rows a
-      // readout can name.
-      for (const key of ['held', 'settle']) {
+      // Pointing at a mark lights it and dims its field. Only the plates whose marks are one
+      // page each carry it: a tick in a rug, a shape over forty pages and a panel that is
+      // already named on the plate are not rows a readout can add anything to.
+      for (const key of ['held', 'settle', 'shared']) {
         const box = document.getElementById(key + '-plate')
         const fig = document.getElementById(key + '-fig')
         const tip = document.getElementById(key + '-tip')

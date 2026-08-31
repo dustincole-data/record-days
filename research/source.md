@@ -33,7 +33,7 @@ inside one figure is the single easiest way to publish a false number here. Sour
 | `peak` | pageviews on the single largest day |
 | `date` | the calendar day of `peak`, UTC |
 | `base` | median pageviews over days -21 to -8 before the peak, the pre-event level |
-| `lift` | `peak / base` |
+| `lift` | **`series[+7] / base`** — day seven against the pre-event level, which is the gate's own "is this page still lifted a week later" arm. **NOT `peak / base`.** This table said `peak / base` until step 4 and it was wrong; the definition is `qualify()` in `src/lib/census.js`. The error put a false sentence in the findings record for three sessions ("on 10 rows the record day reads below the page's own recent level" — it is day seven that does, not the record day). Guarded in `pipeline/07_artefact.mjs`. |
 | `share` | pageviews on day +7 as a fraction of `peak` |
 | `falling` | day +7 as a fraction of day +3 |
 | `series` | pageviews by day offset from the peak; offsets are **integers -30 to +400**, and a missing offset means **no reading was returned**, which is not a zero. Series lengths run **70 to 431 readings**, so rows are not comparable at long horizons without saying which ones survive |

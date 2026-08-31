@@ -446,3 +446,119 @@ pointing at the deleted piece. Nothing was deployed and there is no remote.
 
 **Converted: 4 of 7.** Remaining: F5 (the artefact), F6 (the weekday cycle), F7 (the shared
 dates). All three are guarded already and each has a named mark in the record.
+
+---
+
+## Session 5 — 2026-08-31 · FINISH THE WALK (F5, F6, F7)
+
+The last three beats, built in the approved dress off `src/gen/`. The dress was not reopened.
+No shipped beat was touched. `npm run data` is **302 checks, exits 0**.
+
+### The forms, and why no two are the same
+
+The four already spent: sorted duration field, two-sided rug, unit histogram, density ridges.
+The shipped list is unchanged and none of the three below is on it.
+
+| Beat | Axis | Hero | Why it is not any beat above it |
+|---|---|---|---|
+| 05 `#artefact` | **days -30 to +7, INSIDE each panel** | **small multiples** — 20 panels, one page each, one shared vertical scale of "share of its own record day" | the only plate with a time axis. Every other beat puts pages on an axis; this one puts a month on it, twenty times, and asks the reader to compare shapes |
+| 06 `#weekday` | **a repeating week** | a **two-trace waveform**, filled to a pivot at 1 | the only cyclic axis. Not a bar chart (a curve through 7 points, tiled), not a ridge (two series, not five, and the quantity is a count against its own expectation) |
+| 07 `#shared` | **the calendar, 2015 to 2026** | a **date × size scatter** with the 19 same-day groups drawn as capsules | the only plate with two real axes and the only one that draws all 220 at once. Not the rug (that axis is a value and its ticks are equal), not the unit histogram (nothing here is binned or stacked) |
+
+**F7's proposed mark was rejected and replaced.** The record asked for "a day-strip: the window
+as a line, every record day a tick, groups drawn as a stack". Ticks on a line is beat 02's
+rug, and stacked units over a binned axis is beat 03's histogram, so the proposal collided
+with two shipped forms at once. The scatter carries the same finding with neither.
+
+### What the guard changed this session — the biggest catch of the run
+
+`pipeline/07_artefact.mjs`, `08_weekday.mjs`, `09_shared.mjs`. **107 new checks.**
+
+- **`lift` is not what `source.md` said it was, and F5's headline was false for three sessions.**
+  `source.md` documented the census `lift` field as `peak / base`. `qualify()` in
+  `src/lib/census.js` computes it as **`series[+7] / base`** — the gate's own "still raised a
+  week later" arm. So the record's sentence "on 10 rows **the record day** reads below the
+  page's own recent level" is wrong: on this site's window those ten record days read **2.67x
+  to 122x** their level. What reads below is **day seven**, against a baseline taken from
+  inside the event. Killed, replaced, and both files corrected. The finding is *better* for
+  it: the artefact is now the file's own qualification test failing, not a mystery about
+  record days.
+- **"Ordinary reading is flattest on Monday and highest on Tuesday (Tue 1.779, Mon 1.744, Fri
+  1.410)" is dead, and so is the whole "runs against the reading cycle" frame.** Those numbers
+  reproduce — they are the mean of each reading over its page's median across days **-30 to
+  -8** — and that estimator cannot carry the claim: the window runs into the event for 45
+  rows, it is not detrended, and a mean of ratios against a median is above 1 by construction,
+  which is why all seven values sat near 1.7 instead of near 1. Recomputed on days +180 to
+  +345 with each reading divided by the median of the 7 days centred on it, the reading week
+  is **Sunday-high (1.080), Friday-low (0.954), and Tuesday ordinary (0.988)**. What replaced
+  the dead claim is stronger and is what the page states: **two weekly cycles that share
+  neither their high day nor their low day, one swinging 2.74x and the other 1.132x.** The
+  index is guarded for stability against a second window and by a page-clustered bootstrap.
+- **Two denominators the record had conflated.** 214 rows can be compared across the two
+  windows; **218** rows the census could give a gate reading at all. Both are now named and
+  guarded separately.
+- **A count written at a strength the data does not carry.** Three of the ten read higher on
+  the earlier window than the later one — but the third clears it by **2 views in 30,000**.
+  Guarded twice: the raw count (3) and the count at a margin worth drawing (2), and the page
+  says two.
+- Two invented expectations of my own failed on first run and were corrected to the computed
+  values, not the other way round: the shared-date group carrying the most traffic is
+  2020-11-08 and not 2016-11-09, and the median record day is 2,094,010.5.
+
+### Three drawing bugs the eye caught that no script did
+
+| Bug | The rule |
+|---|---|
+| Every vertical ramp on all three plates rendered as one flat indigo. A bottom-to-top ramp emits its stops in DESCENDING offset order and **SVG clamps each stop to be no smaller than the last**, so the whole gradient collapsed to its first colour | A vertical gradient's stops are **reversed** before they are written. Horizontal ramps on beats 01 to 04 were never affected, which is why this had not appeared before |
+| Beat 05's ramp strip ran the full height of the grid, so "100%" sat beside row 1 and "0.001%" beside row 4 — an axis implying that a panel's position on the page meant something | **The axis is one panel tall and repeats beside each row.** Small multiples share a scale; they do not share a coordinate space |
+| Beat 07's "Charlie Kirk" label was end-anchored at `x + halo`, so it lay across its own dot and the white halo behind the type rubbed the mark out | A label placed on the far side flips its offset **as well as** its anchor |
+
+### What the ladder found, and the rule each produced
+
+The gate passed a page the ladder failed 47 times. Every one was a label measured with a
+factor rather than against a box.
+
+| Bug | The rule |
+|---|---|
+| The per-panel figure was "2.2% of its record day" in the MONO, 231px wide in a 222px panel, overrunning at every width | A string keeps its words only where **the widest of the set** fits the box it sits in. Otherwise it is set short |
+| `"Chadwick Boseman"` fitted a 16-character budget and rendered 131px against 118px | The 0.53em-per-character figure the earlier plates use is an **under**-estimate for this face; measured off rendered boxes it runs 0.585. The budget is 0.60 |
+| Beat 05's two window names collided at 820 measured against the plate, because they are pinned to the two bands and the room they share is the **band span**, not the plate | Measure a pair against the gap between their two anchors, never against the whole box |
+| Beat 05's key labels were set in the mono, half again as wide as the text face | Words go in the text face, figures in the mono. The measure follows the face |
+| Beat 06's day names collided at 320 whatever they were shortened to | Names never shorten — "Su"/"Sa" and "Tu"/"Th" are not names a reader can tell apart. They **stagger onto two rows**, and the number of week repeats is then chosen as the widest tiling those two rows can still carry: three at 1180, one at 320 |
+| Beat 07's year labels collided at 320 on every-second-year | How many years to skip is **computed from the room one year has**, not from a width breakpoint |
+| Beat 07's two four-page tags overlapped each other on a phone | Two tag rows; a tag takes the first row it clears, and one that clears neither is dropped. All 19 dates are listed under the chart, so nothing is lost |
+
+### The copy, under Dustin's rule
+
+| Beat | Heading | The caption's first sentence |
+|---|---|---|
+| 05 | How much traffic these pages already had in the month before their record day | "Each small chart is one page." |
+| 06 | Which day of the week these record days landed on | "The week runs left to right." |
+| 07 | When each record day happened, and the days more than one page shared | "Each dot is one page." |
+
+The pivot's name came **off** beat 06's plate and into its caption ("the line across the
+middle is where both curves would sit if every weekday were the same") because on the plate it
+lay across the very curve it was labelling. Beat 06 says "landed on" and "against how many of
+that weekday the eleven years hold", never why; the UTC caveat is in its method tail. Beat 07's
+method tail carries the roll-call of all 19 shared dates and the pages on each.
+
+### Harness
+
+- `gate.mjs` — **AUDIT CLEAN** at 1440 / 820 / 390 / 320, all seven sections.
+- `ladder.mjs` — **LADDER CLEAN** at 320/360/390/500/620/660/700/820/1180/1440: one type size
+  per plate per width, every label inside its own plate, no overlaps, no page scroll.
+- `interact.mjs` — all pass. Seven sections, seven marks with alt text, no scroll trap.
+- `shots.mjs` — six widths, seven sections each, no horizontal overflow anywhere.
+
+Hover now runs on `#held`, `#settle` and `#shared`. Beat 07's marks are one page each, so it
+earns a readout; its 2.8px core is not a pointer target, so the halo and the core are one
+group and the group is both the hit area and the thing that lights.
+
+### Open
+
+The site's name, the subdomain, the OG card, and `favicon.svg` and `src/lib/site.js` still
+pointing at the deleted piece. **Nothing has been deployed and there is no remote.** Next step
+per the skill is **step 5, the second pass**: re-mine every committed raw file for what pass
+one missed, then back to step 4 with whatever it finds.
+
+**Converted: 7 of 7.**

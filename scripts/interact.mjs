@@ -13,7 +13,7 @@
 import { chromium } from 'playwright-core';
 
 const BASE = process.argv[2] ?? 'http://[::1]:4331/';
-const SECTIONS = ['#held', '#arrival', '#settle', '#groups'];
+const SECTIONS = ['#held', '#arrival', '#settle', '#groups', '#artefact', '#weekday', '#shared'];
 
 let fails = 0;
 const check = (name, ok, detail = '') => {

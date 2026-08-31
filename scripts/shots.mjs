@@ -17,7 +17,8 @@ const BASE = process.argv[2] ?? 'http://[::1]:4331/';
 const OUT = process.argv[3] ?? 'shots';
 const ONLY = process.argv[4];
 
-const SECTIONS = [['#held', 'held'], ['#arrival', 'arrival'], ['#settle', 'settle'], ['#groups', 'groups']];
+const SECTIONS = [['#held', 'held'], ['#arrival', 'arrival'], ['#settle', 'settle'], ['#groups', 'groups'],
+                  ['#artefact', 'artefact'], ['#weekday', 'weekday'], ['#shared', 'shared']];
 
 const SIZES = [
   { name: 'desktop-1440', w: 1440, h: 900, dpr: 1 },

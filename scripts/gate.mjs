@@ -28,7 +28,7 @@ const BASE = process.argv[2] ?? 'http://[::1]:4331/';
 
 // Every section on the page. Add a section here the same commit you add it to the site —
 // a section missing from this list is a section nobody checked.
-const SEL = '#held, #arrival, #settle, #groups';
+const SEL = '#held, #arrival, #settle, #groups, #artefact, #weekday, #shared';
 const FACES = ['Martian Mono', 'Schibsted Grotesk', 'Archivo'];
 
 // 820 is not decoration. It is where multi-column plates fold to one and labels pinned to a
