@@ -562,3 +562,73 @@ per the skill is **step 5, the second pass**: re-mine every committed raw file f
 one missed, then back to step 4 with whatever it finds.
 
 **Converted: 7 of 7.**
+
+---
+
+## Session 6 — 2026-08-31 · SECOND PASS (step 5)
+
+Nothing was built and no shipped beat was edited. `npm run data` is unchanged at **302 checks,
+exits 0**, verified at the top of the session and again at the end. Every committed raw file was
+re-mined. **Seven findings added, five leads killed, and one of the seven is a correction owed to
+a live section.**
+
+### What pass one had never opened
+
+| File | Pass one | Second pass |
+|---|---|---|
+| `data/census/top-days.json` → `meta.disqualified` | never read | **222 rows.** Holds the largest single day in the whole record and the 22-page crawl of 2017-05-22 → F11 |
+| `data/census/renamed.json` | flag computed in `pipeline/01`, **read by nothing** | the 8 moved titles are the file's biggest fallers, p 0.00026 → F13, and a correction to `#settle` |
+| `data/probe/results2.json` | not used | the only committed set with **no shape gate**, which is what lets F10 exist |
+| `data/probe/floor.json`, `probe*.py`, `stats.py` | not used | `res365`/`res180`/`floor.json` are **not reproducible** from committed data → killed as evidence |
+| `src/data/dataset.json`, `events.js` | not used | series stop at day 61; cannot test F9 |
+
+### The seven, ranked as they should be built
+
+| # | The finding | The number that decided it |
+|---|---|---|
+| **F9** | a year later, the world comes back | day +365 at **1.850x** its own surrounding level, **177 of 199** above 1, sign test **p 1.4e-31**; five matched controls at **0.965 to 1.013** |
+| **F10** | there is no half-life | the fitted half-life of the **same rows** is **9.62 days** over a 60-day window and **94.97** over a 340-day one, while the pages halve in **1 day**; power law beats exponential on **66 of 88** ungated probe events |
+| **F11** | 22 pages, one day, within 1% | peaks **1,054,667 to 1,066,589**, CV **0.26%**; null max **6.96**, p < 5e-5 |
+| **F12** | four rows stop dead | snap **818x / 204x / 82x / 40x** against a median of **1.77** and a fifth-place **11.5x** |
+| **F13** | a rename reads as abandonment | median settle **0.1541** against **0.9075**, faller ranks **1, 2, 11, …**, permutation **p 0.00026** |
+| **F14** | February against May | **33 against 16.8**, **7 against 18.5**, chi-square 29.92, p **0.00176** — and nothing finer than a month survives |
+| **F15** | the width of a record | second day a median **41.2%** of the first, adjacent on **209 of 220** |
+
+### The correction owed to a shipped section
+
+`#settle` prints **"J. D. Vance x0.0129"** and **"Charles, Prince of Wales x0.022"** as the two
+pages that fell furthest. **Both are page moves.** `source.md` already warned that a series read
+across a rename measures the move rather than the readership, `pipeline/01` already computes the
+flag, and nothing read it. The finding itself survives and improves without them — the share
+ending above their own level goes **43.9% to 45.2%** — so the fix is to the two names and to F3's
+row in the record, not to the claim. **This is the first thing step 4 should do.**
+
+### Five leads killed, with the numbers that killed them
+
+- **"Oscars week / election week / Super Bowl week"** — the three densest fortnights are real at
+  20, 17 and 18 rows against ~8 expected, but all three windows were **chosen by looking**, and
+  the densest fortnight *anywhere* in the year is **p = 0.056** against a max-corrected null.
+- **"May is empty"** at fortnight resolution — **p = 0.24**. Survives only as F14's month cell.
+- **"Monday is a UTC artefact"** — moving every straddling row back a day leaves chi-square at
+  **19.53** against 19.66 as dated. Killed as an objection, which **strengthens the shipped F6**.
+- **"The machine rows contaminate the shipped beats"** — F1 median **28 either way**, F3 **43.9%
+  to 43.8%**. Killed, which is why F12 can be built without reopening anything.
+- **`res365` / `res180` / `floor.json`** — computed from a fetch never committed; the probe series
+  stop at day 60. Unusable under the reproducibility rule, and recorded because `floor.json`
+  answers F3's question with **71.9%** instead of 43.9% and someone will find it again.
+
+### Two rules this pass produced
+
+| What happened | The rule |
+|---|---|
+| A `renamed` flag was computed in `pipeline/01` at step 1 and read by nothing for four sessions, while two of the rows it flags were printed on a plate as the file's biggest fallers | **A flag that no guard asserts is not a safeguard.** Any per-row caveat the pipeline computes must either be consumed by a section or asserted by a check that fails when it is ignored |
+| Three named calendar windows each carried a p-value under 0.005 and none of them survived at 0.056, because all three were picked by eye off the data first | **A window chosen by looking is tested against the best window the null can find**, never against itself. The month table survives because its twelve cells were fixed before the count |
+
+### Open
+
+Unchanged from Session 5: the site's name, the subdomain, the OG card, and `favicon.svg` /
+`src/lib/site.js` still pointing at the deleted piece. **Nothing deployed, no remote.** Next is
+**step 4 again** — F13's correction first, then F9, F10, F11, F12 as sections. F14 and F15 are
+ranked so nobody mines them a third time and should probably not be spent on.
+
+**Converted: 7 of 14.**

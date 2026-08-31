@@ -58,10 +58,18 @@ inside one figure is the single easiest way to publish a false number here. Sour
 - **Namespace and title filtering happens before ranking.** `Main_Page`, `-`, `Wikipedia`,
   `Undefined` and 15 namespaces (Special, Portal, File, Talk, User, Draft, Module, …) are
   dropped in stage 1. `meta.dropped` carries the exact list.
-- **Titles move.** 8 of the 220 articles were later renamed; `renamed.json` maps old to new.
-  The **old** title stops receiving traffic at the move, so a series read across a rename
-  measures the move and not the readership. Safe on the peak day itself, unsafe for anything
-  about the months after.
+- **Titles move, and it is worse than this line first said.** 8 of the 220 articles were later
+  renamed; `renamed.json` maps old to new. The **old** title stops receiving traffic at the
+  move, so a series read across a rename measures the move and not the readership. Safe on the
+  peak day itself, unsafe for anything about the months after. Measured on the second pass: the
+  8 rank **1, 2, 11, 16, 19, 50, 56 and 116** among the 196 rows by settle ratio, median rank
+  **17.5** against 98.5 expected, permutation **p = 0.00026**, median settle **0.1541** against
+  **0.9075**. `pipeline/01` computes a `renamed` flag and **nothing downstream reads it**, which
+  is how two moved titles became the two named extremes on the shipped `#settle` plate. Three of
+  the 8 also have their **new** title in the file as a **separate row with its own record day**
+  (Electoral College, the 2016 election article, and Charles — who has a **third** row,
+  `Charles,_King_of_the_United_Kingdom`, in the cut list on the same day as the first). The file
+  therefore counts one subject as two pages. See F13.
 - **The window is not a calendar.** It starts 2015-07-01 because that is the first day the
   daily API covers, and ends 2026-08-13 because a peak needs a day +7 to be testable.
   Coverage by month is therefore uneven at both ends: July 2015 and August 2026 are partial.
@@ -69,17 +77,42 @@ inside one figure is the single easiest way to publish a false number here. Sour
   of following days. Series lengths run **70 to 431 readings** against a possible 431, so a
   horizon of day +340 is not available for every row. Anything measured over a long horizon
   silently loses the newest rows unless the shortfall is counted and stated.
-- **`meta.disqualified` is a real list.** **222** rows passed stage 1 and failed the gate
-  (700 tested, 478 qualified), each with its reason (`never fell`, etc) and its peak, date,
-  `share`, `lift` and `falling`. It carries **no `series`**, so those rows can be counted,
-  named and compared on those five fields, but never charted over time.
-- **Machine traffic survives the gate.** The gate reads day +3, day +7 and the pre-event
-  level. A crawl can satisfy all three. At least one row in the 220 is known to have a shape
-  no human readership has (a single day back at baseline between two days a hundred times
-  above it). Any pass over this file has to look for that shape rather than assume the gate
-  caught it.
+- **`meta.disqualified` is a real list, and it is where the biggest days are.** **222** rows
+  passed stage 1 and failed the gate (700 tested, 478 qualified), each with its reason
+  (`never fell` 27, `gone by day seven` 150, `back where it was by day seven` 45) and its peak,
+  date, `share`, `lift` and `falling`. It carries **no `series`**, so those rows can be counted,
+  named and compared on those five fields, but **never charted over time**. Pass one never
+  opened it. What is in it: **83** of the 222 are bigger than the smallest kept row, so of the
+  true top 100 days on record the site holds only **78**; the **largest single day in the entire
+  record is not in the file at all** — `United_States_Senate`, **17,110,916** on 2020-02-08,
+  above Charlie Kirk's 14,954,133 — and the top ten of all 442 also contains `Charles_Darwin`
+  (8,145,795) and `Schutzstaffel` (7,849,999). It also holds **2017-05-22**, on which twenty-two
+  country and historical-state pages set an all-time record within **1.1%** of each other. See
+  F11 and the copy rule below.
+- **Machine traffic survives the gate, and the four rows are now named.** The gate reads day
+  +3, day +7 and the pre-event level. A crawl can satisfy all three. The second pass
+  (2026-08-31) ran the search this line asked for and found **four**, not one:
+  `Index_(statistics)` (rank 90), `Cook's_Country` (133), `Dulce_María` (155) and
+  `Question_mark` (217). Two independent tests agree on the same set — the **snap** (the last
+  day above both 20x its own level and 10,000 views, against the next day: 818x, 204x, 40x and
+  82x, where the median row is 1.77x and no fifth row exceeds 11.5x) and the **toggle** (a day
+  at least 10x below both neighbours where both neighbours are above 5,000: nobody else in the
+  file has one). `Index_(statistics)` sat at 44 views a day, held 19 days between 128,405 and
+  2,372,030, and read 157 the next day. **The cause is not identifiable from this extract** —
+  an automated crawl and a redirect pointed at the title produce the same rectangle — so the
+  shape may be published and a mechanism may not. They do **not** move any shipped number: F1's
+  median duration is 28 either way and F3's share goes 43.9% to 43.8%. See F12.
 
 ---
+
+### The copy rule the second pass added
+
+The set is **the largest 220 rows that also passed a shape gate**. Because
+`meta.disqualified` has now been counted, the size of that gap is known and may be stated
+rather than hedged: of the true top 100 single days the census ranked, the site holds **78**;
+of the top 20, **14**; and the single largest day of all, `United_States_Senate` at
+**17,110,916** on 2020-02-08, is **not one of the 220**. Copy must keep saying "each page's own
+biggest day" and never "the biggest days" — but it may now say what was left out, and how much.
 
 ## 2. Wikimedia daily pageviews — the 88-event probe — CONFIRMED, secondary
 
@@ -101,6 +134,30 @@ inside one figure is the single easiest way to publish a false number here. Sour
   Useful as a *check* on a census finding, never as the evidence for one.
 - **The `class` column is a hand label**, not a property of the data.
 - **all-agents, not users.** See below.
+- **The committed series stop at day 60 to 85** (median last offset 61; `dataset.json`'s
+  `curve` is 61 long for all 88). Anything about a horizon past two months is not in this
+  source, so F9's anniversary **cannot be replicated here**.
+- **`res365`, `res180` and every column in `data/probe/floor.json` are NOT reproducible from a
+  committed file.** `probe2.py:128` computes `res365` as `resid(335,366)` — a mean residual
+  over days 335 to 365 against baseline, so a *level* measure and not an anniversary bump —
+  from a fetch whose data was never committed. Under the "never ship a number you cannot
+  reproduce" rule these are unusable as evidence. Recorded because `floor.json` disagrees
+  loudly with F3 (its `yr_later / clean_base` is above 1 on **71.9%** of 57 rows against F3's
+  43.9%) and someone will find it again: different window, different agent basis, different
+  hand-picked set, undocumented `clean_base`. It does not overturn F3.
+- **The `exp_r2` / `pow_r2` / `exp_hl` / `pow_a` columns are reproducible in kind but not in
+  value.** Refitting both models to the committed series gives median R2 **0.706 / 0.802**
+  against the file's **0.824 / 0.864**; the file's fitting choices are documented nowhere in
+  the repo. **The refit is what may be published.** What survives either way is the direction:
+  the power law beats the exponential on **66 of 88** probe events, on a set carrying **no
+  shape gate**, which is what lets F10 make a decay-shape claim the kill list would otherwise
+  forbid.
+
+### What this source is FOR, restated after the second pass
+
+Its one irreplaceable property is that **nobody gated it on shape**. That makes it the only
+committed set on which a claim about the *form* of a decay can be tested without fitting the
+census's own qualification rule. It is used for exactly that in F10 and for nothing else.
 
 ---
 
