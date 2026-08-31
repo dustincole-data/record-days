@@ -13,14 +13,24 @@
  * a caption says what one mark is. The numbers carry the interest, not the wording.
  */
 import plate from '../gen/plate.json'
+import arrivalData from '../gen/arrival.json'
+import settleData from '../gen/settle.json'
+import groupsData from '../gen/groups.json'
 import { held } from '../lib/marks/held.js'
+import { arrival } from '../lib/marks/arrival.js'
+import { settle } from '../lib/marks/settle.js'
+import { groups } from '../lib/marks/groups.js'
 import { ACCENT, INK, MUTED, HAIR } from '../lib/ink.js'
 import DcdMark from '../components/DcdMark.astro'
 import { SITE } from '../lib/site.js'
 
 const first = held(plate, 1180)
+const firstArrival = arrival(arrivalData, 1180)
+const firstSettle = settle(settleData, 1180)
+const firstGroups = groups(groupsData, 1180)
 const w = plate.meta.window
 const nf = new Intl.NumberFormat('en-US')
+const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents only. ${w.start} to ${w.end}. Public domain, CC0.`
 ---
 
 <!doctype html>
@@ -113,10 +123,164 @@ const nf = new Intl.NumberFormat('en-US')
           </p>
         </details>
 
-        <p class="src">
-          Wikimedia daily pageviews, en.wikipedia, all-access, user agents only.
-          {' '}{w.start} to {w.end}. Public domain, CC0.
+        <p class="src">{src}</p>
+      </section>
+
+      <section id="arrival">
+        <p class="num">02</p>
+        <h2>How much traffic each page had the day before its record day</h2>
+        <p class="deck">
+          The day before, half of these pages were getting under
+          {' '}<b>65,000</b> views. <b>{arrivalData.stat.under1000}</b> were getting fewer than
+          {' '}<b>1,000</b>. Pope Leo XIV's page was getting <b>{arrivalData.pope.before}</b>.
         </p>
+
+        <figure class="fig" id="arrival-fig">
+          <div class="plate-box" id="arrival-plate" set:html={firstArrival.svg}></div>
+          <figcaption>
+            Each tick is one page. Ticks below the scale are that page's views the day before
+            its record day. Ticks above the scale are the record day itself. Every step along
+            the scale is ten times the one before it.
+          </figcaption>
+        </figure>
+
+        <details class="method">
+          <summary>How this is measured</summary>
+          <p>
+            The day before means the one calendar day before the record day, not an average of
+            several. Half of these pages got at least
+            {' '}<b>{arrivalData.stat.medianTimes}</b> times more views on the record day than
+            they had the day before.
+          </p>
+          <p>
+            The upper field covers a single tenfold step of the scale, from
+            {' '}{nf.format(arrivalData.stat.minPeak)} to {nf.format(arrivalData.stat.maxPeak)}
+            {' '}views. The lower field covers nearly six of them, from
+            {' '}{arrivalData.stat.minBefore} views to {nf.format(arrivalData.stat.maxBefore)}.
+            That difference in spread is what this chart is showing.
+          </p>
+          <p>
+            One page runs the other way. {arrivalData.stat.reversedName} got
+            {' '}{nf.format(arrivalData.rows.find((r) => r.t === arrivalData.stat.reversedName).before)}
+            {' '}views the day before and
+            {' '}{nf.format(arrivalData.rows.find((r) => r.t === arrivalData.stat.reversedName).peak)}
+            {' '}on the day. A page's record day here is the largest day the daily top-1000
+            ranking recorded for it, and for this one page its own daily series carries a
+            larger day one day earlier.
+          </p>
+          <p>
+            A view is not a person. The source counts pageviews and does not identify readers,
+            so one person loading a page ten times counts ten times.
+          </p>
+        </details>
+
+        <p class="src">{src}</p>
+      </section>
+
+      <section id="settle">
+        <p class="num">03</p>
+        <h2>Where each page's traffic settled 300 to 340 days after its record day</h2>
+        <p class="deck">
+          <b>{settleData.stat.n}</b> of the {settleData.stat.all} pages can be measured this
+          way. <b>{settleData.stat.above}</b> of them, <b>{settleData.stat.aboveRounded}</b>
+          {' '}percent, were still getting more traffic than they had before the record day.
+        </p>
+
+        <figure class="fig" id="settle-fig">
+          <div class="plate-box" id="settle-plate" set:html={firstSettle.svg}></div>
+          <div class="tip" id="settle-tip" hidden></div>
+          <figcaption>
+            Each square is one page. Its place on the scale is its daily traffic 300 to 340
+            days after the record day, divided by its normal traffic before it. Squares to the
+            right of the marked line ended busier than they started.
+          </figcaption>
+        </figure>
+
+        <details class="method">
+          <summary>How this is measured</summary>
+          <p>
+            Normal level is the same one used in every section: the median of a page's daily
+            views from {Math.abs(settleData.meta.before[0])} to
+            {' '}{Math.abs(settleData.meta.before[1])} days before its record day. The settled
+            level is the median of days {settleData.meta.after[0]} to
+            {' '}{settleData.meta.after[1]} after it. A page needs both windows to be drawn
+            here, which is why {settleData.stat.n} of the {settleData.stat.all} are.
+          </p>
+          <p>
+            <b>{settleData.stat.above2}</b> pages ended above twice their normal level and
+            {' '}<b>{settleData.stat.above5}</b> above five times it.
+          </p>
+          <p>
+            {settleData.stat.scheduledInWorst10} of the 10 pages furthest to the left are
+            scheduled events: a World Cup, two WrestleManias, a Royal Rumble and an Academy
+            Awards. Those events run longer than a month, so the window used for their normal
+            level sits inside the event rather than before it, and the level they are measured
+            against is too high. Their squares sit further left than they should.
+          </p>
+          <p>
+            Squares are grouped into bins of equal width on this scale, and the number of bins
+            follows the width of the chart, so the shape is coarser on a phone. The two counts
+            either side of the line do not depend on the bins.
+          </p>
+        </details>
+
+        <p class="src">{src}</p>
+      </section>
+
+      <section id="groups">
+        <p class="num">04</p>
+        <h2>Where traffic settled, grouped by how much traffic the page had the day before</h2>
+        <p class="deck">
+          The same {groupsData.stat.n} pages, ordered by their traffic the day before as a
+          share of the record day, then cut into five equal groups. The middle page of the
+          quietest fifth settled at <b>{groupsData.groups[0].median}</b> times its normal
+          level. The other four groups settled below theirs.
+        </p>
+
+        <figure class="fig" id="groups-fig">
+          <div class="plate-box" id="groups-plate" set:html={firstGroups.svg}></div>
+          <figcaption>
+            Each shape is one group of 39 or 40 pages, on the same scale as the chart above.
+            Taller means more of that group's pages sat at that point on the scale. The
+            vertical mark on each shape is that group's middle value.
+          </figcaption>
+        </figure>
+
+        <details class="method">
+          <summary>How this is measured</summary>
+          <p>
+            The day before is read as a share of the record day itself, so a page that got
+            1,000 views the day before a 1,000,000 view day counts as 0.1 percent. The
+            quietest fifth were at <b>{groupsData.stat.quietestHiText}</b> or less. The busiest
+            fifth were at <b>{groupsData.stat.busiestLoText}</b> or more.
+          </p>
+          <p>
+            The five groups do not fall in order. The busiest fifth settles at
+            {' '}<b>{groupsData.groups[4].median}</b>, slightly above the fourth group at
+            {' '}<b>{groupsData.groups[3].median}</b>. What holds across the five is narrower:
+            the quietest fifth is the only group whose middle page ended above its own normal
+            level, and the only group where most pages did
+            {' '}({groupsData.groups[0].abovePct} percent of it).
+          </p>
+          <p>
+            Cutting the same {groupsData.stat.n} pages at fixed thresholds instead of into
+            fifths gives the same picture. Pages at under
+            {' '}{groupsData.test.cut[0] * 100} percent of their record day the day before
+            (n = {groupsData.test.ambush.n}) have a middle value of
+            {' '}{groupsData.test.ambush.median}; pages at over
+            {' '}{groupsData.test.cut[1] * 100} percent (n = {groupsData.test.warned.n}) have
+            {' '}{groupsData.test.warned.median}. A Mann-Whitney test on those two sets gives
+            {' '}z = {groupsData.test.z}, p = {groupsData.test.p.toExponential(1)}.
+          </p>
+          <p>
+            The shapes are smoothed over {groupsData.meta.bw} of a tenfold step, on one
+            vertical scale shared by all five, so a group with more pages at one value stands
+            taller. Nothing on this page rests on a bump in a shape. The medians, the counts
+            and the test above are the numbers.
+          </p>
+        </details>
+
+        <p class="src">{src}</p>
       </section>
     </main>
 
@@ -248,58 +412,85 @@ const nf = new Intl.NumberFormat('en-US')
       .plate .m-tick,
       .plate .m-note { font-family: 'Martian Mono', ui-monospace, monospace; }
       .plate .m-note { font-weight: 600; }
-      .plate .m-rows path { transition: opacity 120ms linear; }
-      .plate.lit .m-rows path { opacity: 0.42; }
-      .plate.lit .m-rows path.on { opacity: 1; }
+      .plate .m-rows path,
+      .plate .m-rows rect { transition: opacity 120ms linear; }
+      .plate.lit .m-rows path,
+      .plate.lit .m-rows rect { opacity: 0.42; }
+      .plate.lit .m-rows path.on,
+      .plate.lit .m-rows rect.on { opacity: 1; }
 
-      @media (prefers-reduced-motion: reduce) { .plate .m-rows path { transition: none; } }
+      @media (prefers-reduced-motion: reduce) {
+        .plate .m-rows path, .plate .m-rows rect { transition: none; }
+      }
     </style>
 
     <script>
       import plate from '../gen/plate.json'
+      import arrivalData from '../gen/arrival.json'
+      import settleData from '../gen/settle.json'
+      import groupsData from '../gen/groups.json'
       import { held } from '../lib/marks/held.js'
-
-      const box = document.getElementById('held-plate')
-      const fig = document.getElementById('held-fig')
-      const tip = document.getElementById('held-tip')
+      import { arrival } from '../lib/marks/arrival.js'
+      import { settle } from '../lib/marks/settle.js'
+      import { groups } from '../lib/marks/groups.js'
 
       // Draw at the width the reader actually has. The server render is one width and any
       // other width would be that drawing stretched, which moves every label off its gate size.
-      let last = 0
-      const draw = () => {
-        const w = Math.round(box.clientWidth)
-        if (!w || w === last) return
-        last = w
-        box.innerHTML = held(plate, w).svg
+      const PLATES = [
+        ['held-plate', plate, held],
+        ['arrival-plate', arrivalData, arrival],
+        ['settle-plate', settleData, settle],
+        ['groups-plate', groupsData, groups],
+      ]
+      for (const [id, data, mark] of PLATES) {
+        const box = document.getElementById(id)
+        if (!box) continue
+        let last = 0
+        const draw = () => {
+          const w = Math.round(box.clientWidth)
+          if (!w || w === last) return
+          last = w
+          box.innerHTML = mark(data, w).svg
+        }
+        draw()
+        // The box, not the window: a phone's URL bar resizes the viewport without resizing this.
+        new ResizeObserver(draw).observe(box)
       }
-      draw()
-      // The box, not the window: a phone's URL bar resizes the viewport without resizing this.
-      new ResizeObserver(draw).observe(box)
 
-      const clear = () => {
-        const svg = box.querySelector('svg')
-        if (svg) { svg.classList.remove('lit'); svg.querySelectorAll('.on').forEach((n) => n.classList.remove('on')) }
-        tip.hidden = true
+      // Pointing at a mark lights it and dims its field. Only the two plates whose marks are
+      // one page each carry it: a tick in a rug and a shape over forty pages are not rows a
+      // readout can name.
+      for (const key of ['held', 'settle']) {
+        const box = document.getElementById(key + '-plate')
+        const fig = document.getElementById(key + '-fig')
+        const tip = document.getElementById(key + '-tip')
+        if (!box || !fig || !tip) continue
+
+        const clear = () => {
+          const svg = box.querySelector('svg')
+          if (svg) { svg.classList.remove('lit'); svg.querySelectorAll('.on').forEach((n) => n.classList.remove('on')) }
+          tip.hidden = true
+        }
+
+        box.addEventListener('pointermove', (e) => {
+          const hit = e.target.closest('.m-rows [data-t]')
+          const svg = box.querySelector('svg')
+          if (!hit || !svg) return clear()
+          svg.classList.add('lit')
+          svg.querySelectorAll('.on').forEach((n) => n.classList.remove('on'))
+          hit.classList.add('on')
+          tip.innerHTML = '<b>' + hit.dataset.t + '</b> &nbsp;<i>' + hit.dataset.v + '</i>'
+          tip.hidden = false
+          const r = fig.getBoundingClientRect()
+          const tw = tip.offsetWidth
+          tip.style.left = Math.max(0, Math.min(r.width - tw, e.clientX - r.left + 14)) + 'px'
+          tip.style.top = (e.clientY - r.top - 34) + 'px'
+        })
+        box.addEventListener('pointerleave', clear)
+        // On touch there is no pointerleave. A scroll that starts on the plate ends as a cancel.
+        box.addEventListener('pointercancel', clear)
+        window.addEventListener('scroll', clear, { passive: true })
       }
-
-      box.addEventListener('pointermove', (e) => {
-        const path = e.target.closest('.m-rows path')
-        const svg = box.querySelector('svg')
-        if (!path || !svg) return clear()
-        svg.classList.add('lit')
-        svg.querySelectorAll('.on').forEach((n) => n.classList.remove('on'))
-        path.classList.add('on')
-        tip.innerHTML = '<b>' + path.dataset.t + '</b> &nbsp;<i>' + path.dataset.v + '</i>'
-        tip.hidden = false
-        const r = fig.getBoundingClientRect()
-        const tw = tip.offsetWidth
-        tip.style.left = Math.max(0, Math.min(r.width - tw, e.clientX - r.left + 14)) + 'px'
-        tip.style.top = (e.clientY - r.top - 34) + 'px'
-      })
-      box.addEventListener('pointerleave', clear)
-      // On touch there is no pointerleave. A scroll that starts on the plate ends as a cancel.
-      box.addEventListener('pointercancel', clear)
-      window.addEventListener('scroll', clear, { passive: true })
     </script>
   </body>
 </html>

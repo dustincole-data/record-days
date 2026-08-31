@@ -310,3 +310,139 @@ bigger single days exist that the gate excluded. Copy says "each page's own bigg
 Gate AUDIT CLEAN at 1440/820/390/320, interaction suite passes, six widths shot.
 
 **Converted: 1 of 7.**
+
+---
+
+## Session 4 — 2026-08-31 · WALK IT WIDE (F2, F3, F4)
+
+Three beats built in the approved dress, desktop and phone, off `src/gen/`. The dress was not
+reopened. `#held` was touched once, for a named bug, and that fix is at the foot of this entry.
+
+### The forms, and why no two are the same
+
+The rule is that no two beats share a form and no form may be the hero of a shipped project.
+That is harder here than it looks, because **F2, F3 and F4 are all "before against after"**,
+and the obvious mark for all three is the same one: two values per page joined on a log axis.
+Worse, that mark is already a shipped hero — **How Tall's range columns** are a range bar per
+item, and a dumbbell is a range bar with the ends named. So the record's own proposed marks
+for F2 ("a log strip with the day-before and the day joined") and F3 ("a before/after
+dumbbell per page") could not both be built, and on that reading neither could be.
+
+They were separated by what each one's AXIS is, not by how each one's marks are drawn:
+
+| Beat | Axis | Hero | Why it is not the beat above it |
+|---|---|---|---|
+| 01 `#held` | days since the record day, linear | tapered marks from a common wall, sorted | — |
+| 02 `#arrival` | **views per day**, log | a **two-sided rug**: 220 ticks above the scale for the record day, the same 220 below it for the day before | no common wall, no joins, no sorting. Two distributions on one scale, and the finding is that one is a slab and the other is a smear |
+| 03 `#settle` | **times its normal level**, log | a **unit histogram**, one square per page, bins laid out from the pivot | a stack, not a rug. Its quantity is a ratio, and one value per page rather than two |
+| 04 `#groups` | the same axis as 03 | five **density shapes**, one per fifth of the field | a smoothed silhouette over 39 pages, not a mark per page. The only plate on the site whose unit is a group |
+
+None of those is a calendar plate, a true-scale strip, packed circles, a chord diagram, a
+radial ring, a decision-boundary field, a constellation, range columns, flip bands, a
+simulation stage, a slider, a dot map or a stacked area, which is the shipped list.
+
+**The shared scale, and the guard on it.** Beats 03 and 04 are drawn on one axis at the same
+margins, so 1x sits at the same x on the page in both and a reader can read straight down.
+That is a claim, so `06_groups.mjs` reads 05's payload and asserts the axis and the ramp are
+**one object**, not two matching copies. If they ever drift, `npm run data` stops.
+
+### The ink, extended without changing it
+
+Every plate now derives its five ramp stops from its own data, and the middle stop is always
+the number that plate is about, which is the site's accent ink by construction:
+
+- 02: smallest day-before reading, the day-before quartiles and middle, largest record day.
+  Rose sits at **64,634.5** views, the median day before, which is the rule the plate draws.
+- 03 and 04: the two walls, the two quartiles, and **1.0** in the middle. Rose is "same as
+  before", so the pivot line and the axis colour under it are the same value.
+
+`ink()` was not changed. It interpolates on whatever scale it is handed, so a log axis passes
+log values and log stops.
+
+### What the guard changed this session
+
+`pipeline/04_arrival.mjs`, `05_settle.mjs`, `06_groups.mjs`. **93 new checks.**
+`npm run data` is now **195 checks, exits 0.**
+
+- **A false claim in the record, found and killed.** F2 carried "Meghan, Duchess of Sussex
+  sat at a pre-event level of 1 a day against a peak of 2,301,231." The 1 is the census
+  `base` field, the -21..-8 window this site abandoned at step 2. On the site's own window she
+  has **no usable level at all** (four readings above zero in days -30 to -22, so she is one
+  of the six `noQuiet` rows), and her reading **the day before is 2,202,300**. Her whole month
+  before the wedding reads 1 to 9 views a day, which is a title that was a near-empty page
+  until it was moved onto. On the kill list now, and nowhere on the site.
+- **One row contradicts beat 02's frame, and is published rather than dropped.** Antifa
+  (United States) read **2,561,240** the day before against **1,664,217** on the day. It is
+  the only such row in the file, it is counted and guarded, and the method tail says why: a
+  record day here is the largest day the daily top-1000 ranking recorded for a page, and this
+  page's own series carries a larger day one day earlier.
+- **A guard written from a picture instead of from the numbers.** 06's first draft asserted
+  that every group but the quietest peaks below the pivot. It failed: the second fifth peaks
+  at **1.008**, which is the pivot to any eye and to that kernel's width. The guard is now
+  written at the strength the plate is drawn at, over 2 for the quiet group and under 1.05 for
+  the rest, and the real modes are in the record.
+- **The relation across the five groups is NOT monotone, and there is a guard that says so.**
+  The busiest fifth settles at 0.58 against the fourth's 0.53. A check named "the relation is
+  not monotone" exists so that no later copy on this page can call it a ladder. What is
+  guarded and stated instead is narrower: the quietest fifth is the only group whose middle
+  page ended above its own normal level, and the only one where most pages did.
+- Two spans are guarded because beat 02 is a contrast and a contrast is false the moment
+  either side moves: the record days cover **1.02** tenfold steps and the day before covers
+  **5.85**.
+
+### The copy, under Dustin's rule
+
+Headings name the measurement, decks carry the numbers, captions say what one mark is first.
+
+| Beat | Heading | The caption's first sentence |
+|---|---|---|
+| 02 | How much traffic each page had the day before its record day | "Each tick is one page." |
+| 03 | Where each page's traffic settled 300 to 340 days after its record day | "Each square is one page." |
+| 04 | Where traffic settled, grouped by how much traffic the page had the day before | "Each shape is one group of 39 or 40 pages." |
+
+**"300 to 340 days after" everywhere, never "a year later"** — the one-year idea is dead and
+the phrase is not on the site. No coined terms, no em dashes, no causal wording: beat 04 says
+"grouped by" and "settled", never that one causes the other.
+
+### Three drafts thrown away, and the rule each produced
+
+| Draft | What was wrong | The rule |
+|---|---|---|
+| Beat 02 joined the Pope's two ticks with a curve across the plate | A long diagonal over a scale reads as a trend line, which is the one thing that mark is not, and it crossed the axis strip and two tick labels | A named page at the far end of a field is **flagged, not joined**: its ticks run past their field into clear ground and carry the label there |
+| Beat 03 binned from the left wall | The bin holding 1.0 straddled the pivot, and the caption says squares right of the line ended busier, which was then untrue for whatever landed in it | **Bin edges are laid out from the pivot**, not from the wall, so no square straddles the line the caption points at |
+| Beat 03's two named walls cleared only their own square | The label is wider than the square it names, and on a phone the rest of it lay across a stack four high | A label clears the **tallest stack it covers**, not the one it names |
+
+Also: beat 02's tail figures were set after each name, and a name is proportional so its
+measured width is an estimate. Three labels, three different x. The figures sit in a
+right-aligned column of their own now.
+
+### The one change to `#held`, named
+
+At every desktop width the band caption was written as a single unwrapped line. From about
+**660 to 820** the name column has moved far enough left that the longest returners' labels
+land on the end of it, and at 700 "Kelly Preston" sat on "35 pages never returned to normal."
+The caption now wraps to the room **left of the name column** rather than to the whole plate,
+which costs a second line under 830px and changes nothing above it. Nothing else in that file
+was touched.
+
+### Harness
+
+- `gate.mjs` — **AUDIT CLEAN** at 1440 / 820 / 390 / 320, all four sections.
+- Ladder swept at **320 / 360 / 390 / 500 / 620 / 660 / 700 / 820 / 1180 / 1440**: one type
+  size per width per plate, every label inside its own plate, **no overlapping labels**, svg
+  width equals its box at every width, no page scroll. This sweep is what found both the
+  beat-04 leading and the `#held` bug above.
+- `interact.mjs` — all pass. No scroll trap in any of the four sections, every control named,
+  four marks with alt text, keyboard reaches the page, no page errors.
+- `shots.mjs` — six widths, four sections each, no horizontal overflow anywhere.
+
+Hover is on `#held` and `#settle` only. A tick in a rug and a shape over forty pages are not
+rows a readout can name, so beats 02 and 04 do not pretend to offer one.
+
+### Open, unchanged
+
+The site's name, the subdomain, the OG card, and `favicon.svg` and `src/lib/site.js` still
+pointing at the deleted piece. Nothing was deployed and there is no remote.
+
+**Converted: 4 of 7.** Remaining: F5 (the artefact), F6 (the weekday cycle), F7 (the shared
+dates). All three are guarded already and each has a named mark in the record.

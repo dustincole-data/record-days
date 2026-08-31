@@ -10,7 +10,7 @@
     "astro": "astro",
     "test": "vitest run",
     "test:watch": "vitest",
-    "data": "node pipeline/01_events.mjs && node pipeline/02_claims.mjs && node pipeline/03_plate.mjs"
+    "data": "node pipeline/01_events.mjs && node pipeline/02_claims.mjs && node pipeline/03_plate.mjs && node pipeline/04_arrival.mjs && node pipeline/05_settle.mjs && node pipeline/06_groups.mjs"
   },
   "dependencies": {
     "astro": "^7.2.4"

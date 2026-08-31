@@ -86,7 +86,11 @@ export function held(P, W) {
   // The break before the pages that never came back has to hold the caption that sits in it,
   // and that caption wraps to two lines on a phone.
   const bandText = `${P.stat.holdout + P.stat.running} pages never returned to normal. ${P.stat.holdout} of those were tracked for a full year`
-  const bandLines = wrap(bandText, phone ? Math.floor((W - M.r) / (fs * 0.53)) : 200)
+  // The caption wraps to the room LEFT OF THE NAME COLUMN, not to the whole plate. It was
+  // written as one unwrapped line on any desktop width, and from about 660 to 820 the column
+  // has moved far enough left that the last returner's label lands on the end of it.
+  const bandRoom = phone ? W - M.r : W - M.r - M.lab + 4
+  const bandLines = wrap(bandText, Math.floor(bandRoom / (fs * 0.53)))
   // On a narrow plate the longest returner is labelled inside that break as well.
   const inBreak = phone
     ? P.rows.filter((r) => named.has(r.a) && r.kind === 'back' && r.dur > P.stat.p75)
