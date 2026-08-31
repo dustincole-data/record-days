@@ -19,6 +19,8 @@ import groupsData from '../gen/groups.json'
 import artefactData from '../gen/artefact.json'
 import weekdayData from '../gen/weekday.json'
 import sharedData from '../gen/shared.json'
+import returnData from '../gen/return.json'
+import windowData from '../gen/window.json'
 import { held } from '../lib/marks/held.js'
 import { arrival } from '../lib/marks/arrival.js'
 import { settle } from '../lib/marks/settle.js'
@@ -26,6 +28,8 @@ import { groups } from '../lib/marks/groups.js'
 import { artefact } from '../lib/marks/artefact.js'
 import { weekday } from '../lib/marks/weekday.js'
 import { shared } from '../lib/marks/shared.js'
+import { annual } from '../lib/marks/return.js'
+import { windows } from '../lib/marks/window.js'
 import { ACCENT, INK, MUTED, HAIR } from '../lib/ink.js'
 import DcdMark from '../components/DcdMark.astro'
 import { SITE } from '../lib/site.js'
@@ -37,6 +41,8 @@ const firstGroups = groups(groupsData, 1180)
 const firstArtefact = artefact(artefactData, 1180)
 const firstWeekday = weekday(weekdayData, 1180)
 const firstShared = shared(sharedData, 1180)
+const firstReturn = annual(returnData, 1180)
+const firstWindow = windows(windowData, 1180)
 const ten = artefactData.panels.filter((p) => p.group === 'scheduled')
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const shortDate = (iso) => +iso.slice(8, 10) + ' ' + MON[+iso.slice(5, 7) - 1] + ' ' + iso.slice(0, 4)
@@ -204,7 +210,9 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
           <figcaption>
             Each square is one page. Its place on the scale is its daily traffic 300 to 340
             days after the record day, divided by its normal traffic before it. Squares to the
-            right of the marked line ended busier than they started.
+            right of the marked line ended busier than they started. The two squares furthest
+            to the left are pages that were renamed during the year, so the label marks the
+            page furthest left whose title did not change.
           </figcaption>
         </figure>
 
@@ -228,6 +236,19 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
             Awards. Those events run longer than a month, so the window used for their normal
             level sits inside the event rather than before it, and the level they are measured
             against is too high. Their squares sit further left than they should.
+          </p>
+          <p>
+            <b>{settleData.stat.moved}</b> of these pages were renamed during the year measured
+            here. Wikipedia keeps counting the old title, which after a move receives almost
+            nothing, so those pages read as abandoned when what changed was the name. The two
+            furthest left are both moves: {settleData.moves[0].t} at
+            {' '}<b>{settleData.moves[0].text}</b> its normal level and {settleData.moves[1].t}
+            {' '}at <b>{settleData.moves[1].text}</b>. They are drawn, because the move is real
+            and dropping rows would change the count rather than correct it. Without all
+            {' '}{settleData.stat.moved} of them, <b>{settleData.stat.stayedAbove}</b> of
+            {' '}{settleData.stat.stayed} pages end above their normal level, which is
+            {' '}<b>{settleData.stat.stayedAbovePct}</b> percent rather than
+            {' '}<b>{settleData.stat.abovePct}</b>.
           </p>
           <p>
             Squares are grouped into bins of equal width on this scale, and the number of bins
@@ -483,6 +504,143 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
 
         <p class="src">{src}</p>
       </section>
+
+      <section id="return">
+        <p class="num">08</p>
+        <h2>How much traffic each page had on the day one year after its record day</h2>
+        <p class="deck">
+          On that one day, <b>{returnData.stat.above1}</b> of the {returnData.stat.n} pages that
+          can be measured read above their own traffic level for the weeks around it. The middle
+          page read <b>{returnData.stat.median}</b> times its own level. The same measurement
+          taken at {returnData.meta.controls.slice(0, -1).join(', ')} and
+          {' '}{returnData.meta.controls.at(-1)} days finds nothing.
+        </p>
+
+        <figure class="fig" id="return-fig">
+          <div class="plate-box" id="return-plate" set:html={firstReturn.svg}></div>
+          <figcaption>
+            Each column is one page and each row is one day, from
+            {' '}{returnData.meta.from} to {returnData.meta.to} days after that page's record day.
+            A cell is coloured by how many times that day's traffic reads the page's own level
+            for the weeks around the anniversary, and a day at or below that level is left pale.
+            Columns are sorted by their reading on day {returnData.meta.day}, so the marked line
+            is where the pages that read above their own level end.
+          </figcaption>
+        </figure>
+
+        <details class="method">
+          <summary>How this is measured</summary>
+          <p>
+            A page's level here is not the normal level used in the other sections. It is the
+            median of days {returnData.meta.from} to {returnData.meta.to} after the record day
+            with the fortnight either side of day {returnData.meta.day} taken out, so the day
+            being measured cannot lift the level it is measured against. One page's reading is
+            that day's views divided by that level, and every number in this section, including
+            every control, comes out of that one calculation.
+          </p>
+          <p>
+            <b>{returnData.stat.above2Pct}</b> percent of the pages read at least twice their own
+            level on the day. Running the identical calculation at
+            {' '}{returnData.controls.map((c) => c.d + ' days (' + c.median + ' times, ' + c.above2Pct + ' percent)').join(', ')}
+            {' '}finds nothing of the kind. A sign test on
+            {' '}{returnData.stat.above1} of {returnData.stat.n} gives p =
+            {' '}<b>{returnData.stat.signP.toExponential(1)}</b>, and resampling the pages
+            {' '}{nf.format(returnData.meta.draws)} times puts the middle value between
+            {' '}<b>{returnData.stat.bootLo}</b> and <b>{returnData.stat.bootHi}</b>.
+          </p>
+          <p>
+            <b>{returnData.stat.schedN}</b> of these pages are titled for something that happens
+            again a year later, an election, a final, a ceremony, so their day
+            {' '}{returnData.meta.day} may be the next one rather than a memory of the last. They
+            read <b>{returnData.stat.schedMedian}</b> times. The other
+            {' '}<b>{returnData.stat.otherN}</b> read <b>{returnData.stat.otherMedian}</b> times,
+            with <b>{returnData.stat.otherAbovePct}</b> percent above their own level, so the
+            finding does not rest on them. Dropping the four pages of the shape described in no
+            section here and the eight renamed pages leaves
+            {' '}{returnData.stat.cutN} pages at <b>{returnData.stat.cutMedian}</b> times.
+          </p>
+          <p>
+            {returnData.stat.n} of the {returnData.stat.all} pages can be measured: the rest have
+            a record day too recent for the file to hold a year after it.
+            {' '}{returnData.stat.full} of the {returnData.stat.n} have every day of the window.
+            The largest reading is {returnData.top[0].t} at <b>{returnData.top[0].text}</b> its
+            own level, the smallest {returnData.low[0].t} at
+            {' '}<b>{returnData.low[0].text}</b>. Traffic is still falling at day
+            {' '}{returnData.meta.day} for some of these pages, which pulls the surrounding level
+            up and the reading down, so this is the conservative direction.
+          </p>
+        </details>
+
+        <p class="src">{src}</p>
+      </section>
+
+      <section id="window">
+        <p class="num">09</p>
+        <h2>How fast this traffic halves, measured over windows of different lengths</h2>
+        <p class="deck">
+          Fit a decay curve to the first {windowData.meta.short} days after the record day and it
+          says traffic halves every <b>{windowData.stat.hlShort}</b> days. Fit the same curve to
+          the same {windowData.stat.n} pages over {windowData.meta.long} days and it says
+          {' '}<b>{windowData.stat.hlLong}</b>. Count the days the traffic actually takes and it
+          is <b>{windowData.stat.obsLo}</b> to <b>{windowData.stat.obsHi}</b>.
+        </p>
+
+        <figure class="fig" id="window-fig">
+          <div class="plate-box" id="window-plate" set:html={firstWindow.svg}></div>
+          <figcaption>
+            Left to right is how long a window the curve was fitted over. Up is the half-life
+            that fit reports. The shaded band is the middle half of the
+            {' '}{windowData.stat.n} pages and the line through it is the middle page. The flat
+            band near the bottom is how long the traffic itself takes to halve, which is the same
+            number however far out it is read.
+          </figcaption>
+        </figure>
+
+        <details class="method">
+          <summary>How this is measured</summary>
+          <p>
+            For each page, the traffic above its normal level is fitted twice over the same days:
+            once against the day number, which is an exponential decay, and once against the
+            logarithm of the day number, which is a power law. Only days above the page's own
+            normal level can be used, and a page needs {windowData.meta.min} of them inside a
+            window to be fitted there. <b>{windowData.stat.n}</b> pages clear that at both
+            {' '}{windowData.meta.short} and {windowData.meta.long} days, and those same pages are
+            what every point on this chart is measured on.
+          </p>
+          <p>
+            The reason the answer moves is that the exponential is the wrong shape. Over
+            {' '}{windowData.meta.short} days the power law fits better on
+            {' '}<b>{windowData.stat.winShort}</b> of the {windowData.stat.n} pages
+            {' '}({windowData.stat.winShortPct} percent, median R² {windowData.stat.r2ShortPow}
+            {' '}against {windowData.stat.r2ShortExp}); over {windowData.meta.long} days, on
+            {' '}<b>{windowData.stat.winLong}</b> ({windowData.stat.winLongPct} percent,
+            {' '}{windowData.stat.r2LongPow} against {windowData.stat.r2LongExp}). A curve that is
+            steep early and shallow late has no single halving time, so the number a fit reports
+            is set by where the window stops.
+          </p>
+          <p>
+            The pages of this file were selected partly on the shape of their fall, which if
+            anything favours the exponential. So the same test was run on a second, separate set
+            of <b>{windowData.probe.all}</b> events pulled by hand with no shape test of any kind:
+            the power law fits better on <b>{windowData.probe.win}</b> of them,
+            {' '}{windowData.probe.pct} percent, median R² {windowData.probe.r2pow} against
+            {' '}{windowData.probe.r2exp}. That set counts all traffic rather than human readers
+            only, so its numbers are not mixed with anything else on this page.
+          </p>
+          <p>
+            The flat band is read without any model: the first day a page's traffic above normal
+            falls to half, a tenth and a twentieth of the record day's, which is day
+            {' '}{windowData.depths.map((d) => d.day).join(', day ')} for the middle page, and the
+            half-life each of those implies —
+            {' '}{windowData.depths.map((d) => d.hl + ' days').join(', ')}. Something that really
+            decayed exponentially would give the same answer at all three depths, and this does.
+            The fitted curve is above that band at every window on the chart, by a factor of
+            {' '}<b>{windowData.stat.gap}</b> at the widest.
+          </p>
+        </details>
+
+        <p class="src">{src}</p>
+      </section>
     </main>
 
     <DcdMark />
@@ -648,6 +806,8 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
       import artefactData from '../gen/artefact.json'
       import weekdayData from '../gen/weekday.json'
       import sharedData from '../gen/shared.json'
+      import returnData from '../gen/return.json'
+      import windowData from '../gen/window.json'
       import { held } from '../lib/marks/held.js'
       import { arrival } from '../lib/marks/arrival.js'
       import { settle } from '../lib/marks/settle.js'
@@ -655,6 +815,8 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
       import { artefact } from '../lib/marks/artefact.js'
       import { weekday } from '../lib/marks/weekday.js'
       import { shared } from '../lib/marks/shared.js'
+      import { annual } from '../lib/marks/return.js'
+      import { windows } from '../lib/marks/window.js'
 
       // Draw at the width the reader actually has. The server render is one width and any
       // other width would be that drawing stretched, which moves every label off its gate size.
@@ -666,6 +828,8 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
         ['artefact-plate', artefactData, artefact],
         ['weekday-plate', weekdayData, weekday],
         ['shared-plate', sharedData, shared],
+        ['return-plate', returnData, annual],
+        ['window-plate', windowData, windows],
       ]
       for (const [id, data, mark] of PLATES) {
         const box = document.getElementById(id)

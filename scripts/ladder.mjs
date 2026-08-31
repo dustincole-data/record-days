@@ -24,7 +24,7 @@
 import { chromium } from 'playwright-core';
 
 const BASE = process.argv[2] ?? 'http://[::1]:4331/';
-const SEL = ['#held', '#arrival', '#settle', '#groups', '#artefact', '#weekday', '#shared'];
+const SEL = ['#held', '#arrival', '#settle', '#groups', '#artefact', '#weekday', '#shared', '#return', '#window'];
 
 // The extremes, plus the widths where a layout folds: 620/660/700 straddle the plate-box
 // breakpoint and 820 is where a label column is widest against the room it has.

@@ -18,6 +18,17 @@
  * biggest fallers are scheduled events whose before-window sits inside the event itself, so
  * their "normal level" is a tournament week rather than a quiet one. That is F5, counted here
  * because this is the plate a reader meets it on.
+ *
+ * AND CORRECTED AT STEP 4, SECOND TIME ROUND (F13). The two pages that fall furthest in this
+ * file are both titles that were MOVED during the year the site measures, so their series
+ * after the move is the traffic to a redirect rather than to a readership. `01` has computed a
+ * `renamed` flag since step 1 and nothing read it, while this plate printed one of the two as
+ * its furthest-left page. The flag is now consumed here: the label marks the furthest-left
+ * page whose title did not move, and the moved rows are named as moves in the method tail.
+ * They are still DRAWN — a move is a real thing that happened to a real page, and cutting
+ * eight rows out of a count would change the claim rather than correct it. What the guard
+ * asserts instead is that the claim does not depend on them: the share ending above their own
+ * level is 43.9% with the eight and 45.2% without.
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -55,6 +66,13 @@ const times = (x) => x >= 10 ? Math.round(x) + ' times' : x >= 1 ? x.toFixed(1) 
 const insideEvent = (e) => Number.isFinite(e.lift) && e.lift < 1
 const worst10 = S.slice(0, 10)
 
+// F13. The eight moved titles, and the field with them taken out. `renamed` is computed in
+// 01 and this is the first thing that reads it, which is the whole point of the correction.
+const moved = S.filter((e) => e.renamed)
+const stayed = S.filter((e) => !e.renamed)
+const staytAbove = stayed.filter((e) => e.settle > PIVOT)
+const namedFaller = stayed[0]
+
 const out = {
   meta: { source: ev.meta.source, window: ev.meta.window, before: ev.meta.before, after: ev.meta.after },
   stat: {
@@ -70,6 +88,11 @@ const out = {
     min: +Math.min(...xs).toFixed(4),
     p25: q(xs, 0.25), p75: q(xs, 0.75),
     scheduledInWorst10: worst10.filter(insideEvent).length,
+    // the moved titles, and what the claim reads without them
+    moved: moved.length,
+    stayed: stayed.length,
+    stayedAbove: staytAbove.length,
+    stayedAbovePct: +((100 * staytAbove.length) / stayed.length).toFixed(1),
   },
   scale: {
     lo: LO, hi: HI, pivot: PIVOT,
@@ -79,7 +102,10 @@ const out = {
   },
   stops,
   risen: ['Tasuku_Honjo', 'Imane_Khelif'].map((a) => ({ ...cite(a), text: times(cite(a).x) })),
-  fallen: ['J._D._Vance'].map((a) => ({ ...cite(a), text: times(cite(a).x) })),
+  // The plate's left-hand label. NOT S[0]: the two rows below this one are moved titles.
+  fallen: [{ ...cite(namedFaller.a), text: times(namedFaller.settle) }],
+  // Named in the method tail as moves, never as fallers.
+  moves: moved.slice(0, 2).map((e) => ({ ...cite(e.a), text: times(e.settle) })),
   rows: S.map((e) => ({ t: e.t, a: e.a, x: e.settle, base: e.base, after: e.after })),
 }
 
@@ -116,10 +142,36 @@ check('Tasuku Honjo', +out.risen[0].x.toFixed(1), 507.9)
 check('and as the plate prints it', out.risen[0].text, '508 times')
 check('Tasuku Honjo, before and after', [out.risen[0].base, out.risen[0].after], [99, 50281])
 check('Imane Khelif', +out.risen[1].x.toFixed(1), 189.4)
-check('J. D. Vance', +out.fallen[0].x.toFixed(4), 0.0129)
-check('and as the plate prints it', out.fallen[0].text, '0.013 times')
 check('the biggest riser really is Honjo', S[S.length - 1].a, 'Tasuku_Honjo')
-check('the biggest faller really is Vance', S[0].a, 'J._D._Vance')
+
+// --- F13, the correction ---------------------------------------------------
+// The two rows that fall furthest are both moved titles, so the plate may not name them as
+// the pages that fell furthest. Every part of that sentence is asserted, because the day any
+// of it stops being true is the day the label is wrong again.
+check('the two pages that fall furthest were both moved', [S[0].a, S[1].a],
+  ['J._D._Vance', 'Charles,_Prince_of_Wales'])
+check('and 01 flags both of them as moved', [S[0].renamed, S[1].renamed], [true, true])
+check('J. D. Vance, the furthest fall in the file', +S[0].settle.toFixed(4), 0.0129)
+check('Charles, Prince of Wales, the second', +S[1].settle.toFixed(4), 0.0218)
+check('moved titles in the field', out.stat.moved, 8)
+check('and the rest', out.stat.stayed, 188)
+check('which account for every page drawn', out.stat.moved + out.stat.stayed, out.stat.n)
+// the label the plate actually draws
+check('the plate names the furthest fall whose title did not move', out.fallen[0].a,
+  'United_States_Electoral_College')
+check('which is not itself a moved title', moved.some((e) => e.a === out.fallen[0].a), false)
+check('and nothing between it and the wall stayed put',
+  S.slice(0, S.indexOf(namedFaller)).every((e) => e.renamed), true)
+check('as the plate prints it', [out.fallen[0].x, out.fallen[0].text], [0.0326, '0.033 times'])
+// the claim does not rest on the eight
+check('the share above without the moved titles, %', out.stat.stayedAbovePct, 45.2)
+check('which is still almost half', out.stat.stayedAbovePct > 40 && out.stat.stayedAbovePct < 50, true)
+check('and taking them out moves it by under 2 points',
+  Math.abs(out.stat.stayedAbovePct - out.stat.abovePct) < 2, true)
+// the two named in the method tail are the two moves, in that order
+check('the method tail names the two moves', out.moves.map((m) => m.t),
+  ['J. D. Vance', 'Charles, Prince of Wales'])
+check('and prints them as', out.moves.map((m) => m.text), ['0.013 times', '0.022 times'])
 
 // the honesty note the plate carries about its own falling side
 check('scheduled events among the ten biggest fallers', out.stat.scheduledInWorst10, 5)

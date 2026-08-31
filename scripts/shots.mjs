@@ -18,7 +18,7 @@ const OUT = process.argv[3] ?? 'shots';
 const ONLY = process.argv[4];
 
 const SECTIONS = [['#held', 'held'], ['#arrival', 'arrival'], ['#settle', 'settle'], ['#groups', 'groups'],
-                  ['#artefact', 'artefact'], ['#weekday', 'weekday'], ['#shared', 'shared']];
+                  ['#artefact', 'artefact'], ['#weekday', 'weekday'], ['#shared', 'shared'], ['#return', 'return'], ['#window', 'window']];
 
 const SIZES = [
   { name: 'desktop-1440', w: 1440, h: 900, dpr: 1 },

@@ -53,9 +53,29 @@ export function settle(P, W) {
   const tallest = Math.max(...stack.values())
 
   // ---- vertical structure --------------------------------------------------
+  // A wall label clears the TALLEST stack it covers, so a wide label over a busy part of the
+  // field is pushed high enough to sit on the two counts. The field is therefore laid out
+  // AFTER the labels have said how much room they need: the name that fell furthest whose
+  // title did not move is 31 characters where the old one was 11, which is what found this.
+  const nameW = (s) => fs * 0.53 * s.length
+  const figW = (s) => fs * 0.75 * s.length
+  const covers = (r, right) => {
+    const b = binOf(r.x)
+    const wLab = Math.max(nameW(r.t), figW(r.text))
+    const x0 = right ? W - M.r - wLab : M.l
+    let h = stack.get(b) ?? 1
+    for (const [bb, c] of stack) {
+      const bx = left(bb)
+      if (bx + cell > x0 - 4 && bx < x0 + wLab + 4) h = Math.max(h, c)
+    }
+    return h
+  }
   const line2 = phone ? 0 : fs + 3
   const countY = 6 + fs
-  const histTop = countY + line2 + 16
+  const histTop = Math.max(
+    countY + line2 + 16,
+    ...[covers(P.risen[0], true), covers(P.fallen[0], false)]
+      .map((h) => countY + 16 + 2 * fs - (tallest - h) * cell))
   const histBase = histTop + tallest * cell
   const stripY = histBase + 5
   const tickY = stripY + 7 + 5 + fs
@@ -92,25 +112,20 @@ export function settle(P, W) {
   }
 
   // ---- the two walls, named against the edge they sit on -------------------
+  // The left label is NOT the leftmost square. The two furthest-left pages were renamed
+  // during the year this measures, so what fell is the title rather than the readership.
+  // 05 hands over the furthest fall whose title stayed put; the two moves are named as
+  // moves in the method tail.
   // A label is placed above the TALLEST stack it covers, not above the one square it names.
   // The first draft cleared only its own square and the text lay across the field wherever
   // the skyline rose under the rest of the label, which on a phone was most of it.
-  const nameW = (s) => fs * 0.53 * s.length
-  const figW = (s) => fs * 0.75 * s.length
   const wall = (r, right) => {
     const b = binOf(r.x)
-    const wLab = Math.max(nameW(r.t), figW(r.text))
     const tx = right ? W - M.r : M.l
-    const x0 = right ? tx - wLab : tx
-    let h = stack.get(b) ?? 1
-    for (const [bb, c] of stack) {
-      const bx = left(bb)
-      if (bx + cell > x0 - 4 && bx < x0 + wLab + 4) h = Math.max(h, c)
-    }
-    const top = histBase - h * cell
-    const cx = left(b) + cell / 2
+    const top = histBase - covers(r, right) * cell
+    const cx2 = left(b) + cell / 2
     return [
-      `<line x1="${cx.toFixed(2)}" y1="${(histBase - (stack.get(b) ?? 1) * cell - 3).toFixed(2)}" x2="${cx.toFixed(2)}" y2="${(top - 6).toFixed(2)}" stroke="${HAIR}" stroke-width="1"/>`,
+      `<line x1="${cx2.toFixed(2)}" y1="${(histBase - (stack.get(b) ?? 1) * cell - 3).toFixed(2)}" x2="${cx2.toFixed(2)}" y2="${(top - 6).toFixed(2)}" stroke="${HAIR}" stroke-width="1"/>`,
       T('m-name', tx, top - 9 - fs - 3, INK, right ? 'end' : null, esc(r.t)),
       T('m-fig', tx, top - 9, tint(r.x), right ? 'end' : null, esc(r.text)),
     ]
@@ -137,7 +152,8 @@ export function settle(P, W) {
     `daily traffic 300 to 340 days after its record day divided by its normal traffic before it. ` +
     `${P.stat.below} pages ended below their normal level and ${P.stat.above} ended above it, ` +
     `which is ${P.stat.aboveRounded} per cent. The highest is ${esc(P.risen[0].t)} at ${P.risen[0].text} ` +
-    `its normal level, the lowest ${esc(P.fallen[0].t)} at ${P.fallen[0].text}.">` +
+    `its normal level. The lowest square that is not a page renamed during the year is ` +
+    `${esc(P.fallen[0].t)} at ${P.fallen[0].text} its normal level.">` +
     `<defs><linearGradient id="ramp3" gradientUnits="userSpaceOnUse" x1="${M.l}" x2="${M.l + plotW}">${rampStops}</linearGradient></defs>` +
     `<g class="m-rows">${marks.join('')}</g>${notes.join('')}${axis.join('')}</svg>`
 

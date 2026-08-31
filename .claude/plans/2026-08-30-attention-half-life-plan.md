@@ -632,3 +632,144 @@ Unchanged from Session 5: the site's name, the subdomain, the OG card, and `favi
 ranked so nobody mines them a third time and should probably not be spent on.
 
 **Converted: 7 of 14.**
+
+---
+
+## Session 7 — 2026-08-31 · BACK TO STEP 4 (F13's correction, then F9 and F10)
+
+The correction owed to `#settle` is shipped, and the two highest-ranked findings of the second
+pass are built as beats 08 and 09 in the approved dress. The dress was not reopened. `npm run
+data` is **390 checks, exits 0** (302 at the top of the session, 315 after F13, 390 after F9 and
+F10). The two new sections are **appended** as 08 and 09 rather than inserted next to the beats
+they argue with, so no shipped section's number moved.
+
+### F13, on a plate that was already live
+
+`#settle` printed the two rows that fall furthest, and both are titles that were **moved** during
+the year. `01` had computed the `renamed` flag since step 1 and nothing read it.
+
+- **The flag is now consumed rather than merely computed.** `05` picks its left-hand label as the
+  furthest fall **whose title stayed put** — the United States Electoral College at **0.0326** —
+  and guards every part of that sentence: that S[0] and S[1] are J. D. Vance and Charles, Prince
+  of Wales, that `01` flags both, that the label is not itself a move, and that **nothing between
+  the label and the wall stayed put**. The day any of that stops being true the run stops.
+- **The eight are still drawn, and that is the honest choice.** A move is a real thing that
+  happened to a real page; cutting eight rows would change the count rather than correct it. What
+  is guarded instead is that the claim does not depend on them: **43.9%** of 196 with them,
+  **45.2%** of 188 without, and a check that the gap stays under two points.
+- The two are named in the method tail **as moves**, with what each reads, so the plate says the
+  thing rather than hiding it.
+- The alt text was wrong in the same way the label was and was rewritten: "the lowest square that
+  is not a page renamed during the year".
+
+### The forms, and why no two are the same
+
+Seven already spent: sorted duration field, two-sided rug, unit histogram, density ridges, small
+multiples, two-trace waveform, date x size scatter. The shipped-project list is unchanged.
+
+| Beat | Axis | Hero | Why it is not any beat above it |
+|---|---|---|---|
+| 08 `#return` | **one column per page across, one day down** | a **raster** — 199 x 71 cells, ink is how many times that day reads the page's own level around its anniversary | the only plate whose unit is a page-**day** and the only one with a cell grid. Everything else puts one mark per page; this puts seventy-one |
+| 09 `#window` | **the length of the window the fit was read from** | a **climbing quantile ribbon** on a log-log ground, against a flat band | the only plate whose x-axis is **a choice the analyst makes** rather than a quantity the world produced. Not the waveform (no cycle, no fill to a pivot, monotone), not the ridges (one distribution swept along an axis, not five side by side) |
+
+**Beat 08's picture is the count.** Columns are sorted by their day-365 reading, so the coloured
+band stops where the 177 pages that read above their own level end and the last 22 begin, and the
+hairline is drawn at exactly that crossing. Nobody has to be told the number to see it.
+
+**Beat 09's ink is beat 01's ink, asserted as one array.** Up that plate is a number of days, so a
+colour there is the same number of days it is on the first plate; `11` reads `plate.json`'s stops
+rather than restating them and checks the two are the same object. That is the site's third shared
+scale (03/04, 01/09) and, like the others, it is guarded because it is a claim.
+
+### Two decisions inside beat 08 worth keeping
+
+- **The field is pale by rule, not by taste.** The quantity is a lift, so a day at or below a
+  page's own level is nothing happening and is drawn as nothing happening: hue from the ramp,
+  opacity from the lift, floored at a tenth. A raster at full strength is a slab and would have
+  buried its own focal point — this site's five ramp stops all clear 3:1 against white, so it has
+  no pale end to fall back on and the alpha has to do that work.
+- **Quantisation is an editorial decision that happened to be cheap.** Ten bins of 1.26x, with
+  everything at or below 1x sharing bin 0, and equal bins that touch inside a column drawn as one
+  rectangle. As one rect per cell it was **9,510 nodes and 884 KB** redrawn on every resize; as ten
+  per-bin paths it is **10 nodes and 143 KB**. The bins are emitted by `10`, so nothing the eye
+  sees was decided in the mark.
+
+### What the guard changed this session — three claims in the record, none of them survivable
+
+`pipeline/10_return.mjs` and `11_window.mjs`, **75 new checks**, plus **13** on `05`.
+
+- **F10's census fit numbers do not reproduce and were rebuilt.** The record carried 148 of 189
+  and 181 of 196, half-lives 9.62 and 94.97, from a second-pass script that was never committed.
+  No combination of base window (site vs census), coverage rule, or minimum-points rule recovers
+  both counts — and the two are in the wrong order for any points-based rule, since the record's
+  *shorter* window has the *smaller* n. So the rule was written down instead and guarded: one
+  before-window, days usable only above the page's own level, ten of them needed, the window
+  covered, and **the set fixed once** at the 182 pages that clear it at both windows so that every
+  point is the same rows. That gives **9.59 / 97.93** and **139 / 167 of 182**, all within a few
+  percent of what was recorded. **The probe figures reproduced exactly and are untouched**, which
+  is what says the estimator is right and the row rule was the missing piece.
+- **A resampling interval was published without its generator.** F9's 1.650 to 2.061 cannot be
+  reproduced by anything; the committed interval is **1.600 to 2.085**, 20,000 draws of the same
+  xorshift `02` and `08` use, seeded. The claim it carries — the interval excludes 1 — is guarded
+  directly rather than by its endpoints alone.
+- **A "median" that was closer to a mean.** F9 said the 13 repeating-event rows read 2.513 while
+  the other 186 read 1.841. The complement reproduces to four figures **and its share to one
+  decimal**, which means the 13 are the same 13 — so their median is fixed, and it is **2.0532**
+  (their mean is 2.503). Corrected, and the split is narrower than the record made it, which is
+  the direction that costs the finding nothing: what carries F9 is that the 186 rows *outside* the
+  rule read 1.841 with 89.2% above their own level.
+- The one number I invented rather than computed also failed on first run and was corrected to the
+  computed value: F9's largest reading is **Diogo Jota at 82.06x**, not a name I would have picked.
+- Guarded as a **relation**, not only as numbers: every one of the five controls must sit within 5%
+  of 1, the anniversary must beat every one of them by 1.6x, its share at 2x must be five times the
+  highest control's, the sweep must climb at **every** step, and every fitted window must overstate
+  the observed band. "It comes back" is false the moment a control lifts too.
+
+### What the ladder found that the gate did not
+
+The gate passed the page at all four widths while the ladder failed it at six.
+
+| Bug | The rule |
+|---|---|
+| `#settle`'s new label is **31 characters** where the old one was 11, so it covered far more of the field, was pushed up to clear the tallest stack under it, and landed on the two counts — outside the plate at four widths | **A label that clears what it covers has to be laid out before the field is.** The histogram's top is now computed from what the wall labels need, not fixed first and hoped for |
+| Beat 08's day figures were clipped: a 30px margin against a three-figure mono day that measures 29px | **The margin is the widest label plus its tick, measured.** No margin is a round number chosen by eye |
+| Beat 08's key read `1x or le1.85x` — the strip was capped at 420px and the first two labels ran together | The strip takes the **plot's** width, and where a word still will not fit the label is set short and the caption carries the word |
+| Beat 08's `did not` ran off the right edge at 700px, where the crossing sits at 89% of the plate | **Each half of a split label is measured against its own room** — the gap between the crossing and its own wall — and both are dropped together rather than leaving half a sentence |
+| Beat 09's two figures overlapped below 500px | They are pinned to their own windows, so the room they share is **the gap between those two windows**, not the plate. Where they will not fit they **stagger onto two rows**, which is what beat 06's weekday names already do |
+
+### The copy, under Dustin's rule
+
+| Beat | Heading | The caption's first sentence |
+|---|---|---|
+| 08 | How much traffic each page had on the day one year after its record day | "Each column is one page and each row is one day." |
+| 09 | How fast this traffic halves, measured over windows of different lengths | "Left to right is how long a window the curve was fitted over." |
+
+Beat 08 says "the same measurement taken at 200, 240, 270, 300 and 330 days finds nothing" rather
+than anything about memory or grief, and its method tail names the repeating-event rule **as a hand
+rule** and says where it leaks (Jannik Sinner's day +365 is the next Wimbledon final and no keyword
+catches him). Beat 09 never says "attention" and never says the site's dead premise out loud; it
+names the measurement and lets the two numbers do it.
+
+### Harness
+
+- `gate.mjs` — **AUDIT CLEAN** at 1440 / 820 / 390 / 320, all nine sections, all three faces loaded.
+- `ladder.mjs` — **LADDER CLEAN** at 320/360/390/500/620/660/700/820/1180/1440.
+- `interact.mjs` — all pass. Nine sections, nine marks with alt text, no scroll trap, no page errors.
+- `shots.mjs` — six widths, nine sections each, no horizontal overflow anywhere.
+- Hover is unchanged at `#held`, `#settle`, `#shared`. Beat 08's columns are one page each and
+  could carry a readout, but it would cost 199 hit rectangles to light a column that is pale by
+  design, and beat 09's marks are a distribution and a fitted model, which are not rows to name.
+
+**A note on the preview server.** `astro preview` had a daemon of its own on 4347 and an unrelated
+project was serving *How Tall* on 4331, so the first shot run measured somebody else's page and
+reported a 900px document. Verify the title, or a section id, out of the served HTML before
+trusting a single number the harness prints.
+
+### Open
+
+Unchanged: the site's name, the subdomain, the OG card, and `favicon.svg` / `src/lib/site.js` still
+pointing at the deleted piece. **Nothing deployed, no remote.** Next is F11 (22 pages, one day,
+within 1% — needs the 222 cut rows restored in a second ink) and F12 (four rows that stop dead).
+F13's own section is optional now that the correction is shipped.
+
+**Converted: 9 of 14.**
