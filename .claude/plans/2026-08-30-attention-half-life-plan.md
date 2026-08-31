@@ -141,3 +141,121 @@ the record; none was corrected in the guard.
 real in it, desktop and phone, put up together.
 
 **Converted: 0 of 7** (F8 retired by killing).
+
+---
+
+## Session 3 — 2026-08-30 · THEME, AND ONE PLATE
+
+### The sentence
+
+> **Every mark on this site is one page measured against its own quiet, laid on one axis of
+> days since the day. It is a stopwatch, not a front page.**
+
+### What it decides
+
+| Slot | Decision | Because |
+|---|---|---|
+| **Display face** | **Martian Mono** — every figure on the site, and the one title. A wide mechanical mono reads as an instrument readout | The figures ARE the display. A stopwatch has no headline face, so the numbers get the one loud slot and nothing else does |
+| **Text face** | **Schibsted Grotesk** — headings, the few words, the 220 names | Quiet and wide-set, invisible next to a mono figure. Neither face is used on any shipped dustincoledata project, and neither is on the house ban list |
+| **Rules** | The only structural chrome is the **day axis** and one median rule. No cards, no boxes, no panel borders | An instrument has a scale and a needle. Anything else is decoration on a measurement |
+| **Ground** | White, per the standards. Colour lives only in the mark | |
+| **Palette** | The ink IS the day count. Five stops, and they are the **data's own landmarks** — shortest 1, p25 12, **median 28**, p75 56, longest 340 — read from `plate.json`, never typed. `#1E2170` indigo, `#5B2A93` violet, **`#B31E63` rose**, `#C9452C`, `#C67F08` amber | The accent ink of the whole page (rule, section number, focus ring, readout figure) is `#B31E63`, which is the colour of 28 days. Chrome cannot drift from data because they are the same value |
+| **Legend** | There is none. The **axis bar is painted in the ramp**, so a mark's colour is the axis colour at the day it stops | One object to read, not two |
+| **Structure** | One numbered beat per finding, each a reading off the same instrument: number, heading, one line, the mark, the axis, a folded method tail | |
+| **Interaction** | Pointer over a row lights it and dims the field; the readout names the page and its days | |
+
+Palette check: every stop clears 3:1 against white, which is what keeps a one-day mark visible
+when it is a pixel wide. The three a reader has to name apart — one day, a month, a year —
+separate at ΔE 12.7 protan and 24.3 normal. The validator's lightness-band and adjacent-15
+checks are categorical-palette checks and do not apply to a continuous ramp; its own footer
+says so.
+
+### What it rejects, in writing
+
+**The front page.** No headline face, no dateline, no columns, no photographs, no obituary
+column, no chronological ribbon of what happened. This dataset is a roll-call of famous names
+attached to enormous numbers, and the obvious move is to dress it as news about them. It is
+not news. It is 220 measurements, and the page they belong on is a scale, not a masthead.
+
+Also rejected, and already dead in the record: the decay curve. That shape is the
+qualification gate, not the world.
+
+### Hero form — the audit
+
+Hero forms already used by shipped dustincoledata projects: calendar plate (Year of
+Everything), true-scale scroll strip (Deep Time), packed circles / name foam (Namesake),
+chord diagram (Where America Moves), radial ring poster (Climate Fingerprint), decision
+boundary field (By Example), semantic constellation (Meaning Map), range columns (How Tall),
+flip bands (What America Eats), simulation stage (Cascade), age slider, dot map, stacked area.
+
+**Chosen, and used by none of them: a sorted duration field.** 214 tapered marks, one per
+page, all starting at the record day, each stopping on the day that page came back. The right
+edge of the ink is the sorted duration curve, so the finding is the silhouette rather than a
+number printed beside it. Rows sit edge to edge and fray at the tips, which is what keeps it
+from reading as a bar chart.
+
+### The plate — `#held`, F1
+
+Built at `src/lib/marks/held.js`, drawn 1:1 and redrawn client-side from a `ResizeObserver` on
+the plot box, never stretched, because a scaled SVG has a font-size in user units and a
+rendered size in pixels and the gate measures the first.
+
+**Two rejected drafts, and the rule each produced:**
+
+| Draft | What was wrong | The rule it produced |
+|---|---|---|
+| Rows with a 1px gap between them | Read as a stack of stripes floating in white | The field is contiguous. Separation is a hairline of the ground, not a gap; white belongs outside the mark |
+| Names printed at the left wall on a clearance above each row | Five of the ten sit within 30px of each other, so labels crowded, crossed the median rule and sat on the ink | Labels go in a column beside the plot with a leader back to their own mark, pushed apart to a readable spacing. The corner a sorted curve leaves empty is where the names live |
+
+**What is drawn that a summary would drop.** The band at the foot: 35 pages never came back,
+so their marks run past the axis and dissolve rather than stopping on a day that never
+happened. The split inside that band is stated on the plate: **32** were watched a full year,
+**3** have a record day too recent for the file to say.
+
+### What the guard changed this session
+
+`pipeline/03_plate.mjs`, **35 new checks**. `npm run data` is now **96 checks, exits 0**.
+
+- **A second quantile definition.** 03's first draft floored `0.75*(n-1)` where 02 floors
+  `0.75*n`, and they disagreed on p75 by a day, 55 against 56. The guard failed on it. The fix
+  was not to match the numbers but to delete the second definition: 03 now takes the quartiles
+  off 02's payload and asserts that its own recount of the median and the walls still agrees.
+  Two definitions in one repo is one too many.
+- **"41 never came back" was two different sentences.** 01 stops looking for a return at day
+  340, so its 41 duration-less rows mix pages watched a full year that stayed up with pages
+  whose record day is too recent to have a year of file at all. Counted apart: **32 / 3 / 6**.
+  The record was corrected to carry all three.
+- **The 340-day horizon was checked rather than assumed.** A scan out to day 393 finds **zero**
+  of the 32 coming back late, so the horizon is not manufacturing the holdouts. The check is
+  kept, because the day 01 changes its horizon is the day that stops being true.
+- Stale cross-references in the hunt list still pointed at the pre-re-rank numbering, F1/F3/F4
+  where F4/F5/F6 were meant. Corrected in the record.
+
+### Harness
+
+All three scaffold scripts copied in and their constants filled (`SEL '#held'`, three faces).
+
+- `gate.mjs` — **AUDIT CLEAN** at 1440 / 820 / 390 / 320. Nothing under 14px desktop or 13px
+  phone, nothing off-canvas, nothing clipped, no page-wide horizontal scroll, and all three
+  faces genuinely loaded rather than declared.
+- `interact.mjs` — all checks pass. No scroll trap, every control named, the mark carries alt
+  text, the keyboard reaches the page, no page errors.
+- `shots.mjs` — six widths, no horizontal overflow at any of them.
+
+Two gate catches worth keeping: the mono figures in the folded method tail were set at 13px on
+desktop and were refused, so they inherit now; and the hover readout's inner spans are created
+by `innerHTML`, which Astro's scope attribute never reaches, so their type silently fell back
+to an italic serif. Both were invisible to every other check.
+
+### Open, and deliberately not decided
+
+- **The site's name.** The page carries `Record Days` as a working title. The repo is
+  `Attention_Half_Life` and that premise is dead, so this needs Dustin's call. Nothing else
+  depends on it.
+- `src/lib/site.js` still points at `cast.dustincoledata.com` and `public/favicon.svg` is the
+  deleted piece's mark. Both left alone: subdomain and favicon are listed as still open.
+- **F3 wording.** F3 reads a page's resting level at day 300 to 340. "A year later" is the
+  natural phrase for it and the one-year idea was killed, so the phrase appears nowhere yet
+  and will not until Dustin rules on it.
+
+**Converted: 1 of 7.**

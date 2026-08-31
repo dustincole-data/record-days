@@ -27,7 +27,7 @@ that is the definition of the set. Every finding below is checked against day **
 
 | # | Claim | Numbers | Why a stranger cares | Confidence | Mark |
 |---|---|---|---|---|---|
-| **F1** | The world looks at something for about a month. It looked at the World Cup final for one day and at Jerry Springer for a year. | Days until a page is back under twice its own quiet level and stays there a week, measured off days -30..-22: **median 28**, range **1 to 340**, n=179. **16** rows are done inside a week; **27** hold past 100 days. Shortest: FIFA World Cup **1 day**, WrestleMania 33 and 34 **2**, 88th Academy Awards **3**, Tom Brady **7**. Longest: Jerry Springer **340**, Kelly Preston **330**, Naya Rivera **327**, Sushant Singh Rajput **227** | Everyone has a sense that news fades, nobody has a number for it. "A month" is the number, and the extremes are a day and a year | **High** for the median and the range. **Medium** for the shortest rows: a month-long tournament has no clean pre-window inside 30 days, so the World Cup's 1 day is partly its own baseline. Say so on the page | A single duration axis, 1 to 340 days, every row a mark, named. The scheduled events pile against the left wall |
+| **F1** | The world looks at something for about a month. It looked at the World Cup final for one day and at Jerry Springer for a year. | Days until a page is back under twice its own quiet level and stays there a week, measured off days -30..-22: **median 28**, range **1 to 340**, n=179. **16** rows are done inside a week; **27** hold past 100 days. Shortest: FIFA World Cup **1 day**, WrestleMania 33 and 34 **2**, 88th Academy Awards **3**, Kamala Harris **5**, Tom Brady **7**. Longest: Jerry Springer **340**, Kelly Preston **330**, Christian Eriksen **330**, Alexander Hamilton **254**. The other **41** rows split three ways, and the split is the honesty of the finding: **32** were watched a **full year** (400 readings) and were still above twice their own quiet level at the end of it, **3** have a record day too recent for the file to say either way, and **6** have no quiet window in the thirty days before, so they cannot be measured this way at all. Added at step 3; **none** of the 32 comes back between day 341 and day 393 either, so the horizon is not what is producing them | Everyone has a sense that news fades, nobody has a number for it. "A month" is the number, the extremes are a day and a year, and a sixth of them never come back | **High** for the median and the range. **Medium** for the shortest rows: a month-long tournament has no clean pre-window inside 30 days, so the World Cup's 1 day is partly its own baseline. Say so on the page | A single duration axis, 1 to 340 days, every row a mark, named. The scheduled events pile against the left wall |
 | **F2** | Five people read his page the day before. Seven and a half million read it the next. | Pope Leo XIV: **5** readings 2025-05-07, **7,538,267** on 2025-05-08. **10** of the 220 were read fewer than **1,000** times the day before their record day: Damar Hamlin **53**, Prince Harry **72**, Francis Scott Key Bridge **79**, the 2022 Russian invasion of Ukraine **306**, Christina Grimmie **468**. Meghan, Duchess of Sussex sat at a pre-event level of **1** a day against a peak of **2,301,231** | No setup, no metric, no domain. Two numbers and a name everyone knows | **High.** Direct read of two cells | A log strip from 1 to 10 million with the day-before and the day joined. The gap is the finding |
 | **F3** | Almost half of them never go back down. | Against one before-window for the whole site (days -30 to -22), of **196** rows with a usable level and a full year after, **86 (43.9%)** settle **above** where they started; **46** above 2x, **14** above 5x. Tasuku Honjo **x507.9**. Imane Khelif **x189.4**. Against them, J. D. Vance **x0.013**, Charles, Prince of Wales **x0.022**, the United States Electoral College **x0.033** | "The internet moves on" is the received wisdom and it is wrong for half of these | **High** for the rows and the share; **medium** as a general claim, because the 220 are a gate not a sample | A before/after dumbbell per page on a log axis, sorted by ratio, with the line where the two halves swap |
 | **F4** | The ones nobody saw coming are the ones that keep the readers. | On the site's one before-window: day before under 2% of the peak, **91** rows, settle **1.30x**, **60%** end higher. Over 25%, **43** rows, settle **0.55x**, **35%** higher. Mann-Whitney z **3.587**, p **3.4e-4**. The same split on duration runs **31 days** for the calm rows against **21** for those already climbing before day -21 | The payoff, not the opening: once a reader has seen F1, F2 and F3, this is what ties them together | **High.** Nine of nine across three before-windows and three after-windows, worst p 0.0007, and the value above is the most conservative of them. Warning is not a fame proxy (log-log r 0.356) | Two fans of slope lines from before-level to after-level on one log scale, pointing opposite ways |
@@ -68,13 +68,13 @@ that is the definition of the set. Every finding below is checked against day **
 
 | Shape | Outcome |
 |---|---|
-| the reversal | **F1.** The direction of the aftermath flips with the warning |
+| the reversal | **F4.** The direction of the aftermath flips with the warning |
 | the thing that started or stopped, and the year | **Not found.** No step change in any series-level statistic at any year boundary. The only time trend is F7, which is confounded |
-| the outlier that should not be there | **F3.** Six rows whose record day is *below* their own recent level |
-| an invisible cycle | **F4.** Monday/Tuesday, and it runs against the reading cycle |
+| the outlier that should not be there | **F5.** Ten rows whose record day is *below* their own recent level, six of them with no clean window anywhere |
+| an invisible cycle | **F6.** Monday/Tuesday, and it runs against the reading cycle |
 | the personal hook | **Open.** 220 rows is too few for a birthday lookup to hit. Best candidate is letting a reader pick a page they know and see its own before/after against the two fans of F1. Needs an interaction, so it is a step-3 decision, not a finding |
-| the widely believed thing the data contradicts | **F1 and F5.** "Big news leaves a mark" and "the internet moves on" are both contradicted, in opposite directions |
-| **the artefact** | **F3.** The baseline window sitting inside the event, and the lift metric silently inverting on scheduled events |
+| the widely believed thing the data contradicts | **F1 and F3.** "Big news leaves a mark" and "the internet moves on" are both contradicted, in opposite directions |
+| **the artefact** | **F5.** The baseline window sitting inside the event, and the lift metric silently inverting on scheduled events |
 
 ---
 
@@ -82,7 +82,7 @@ that is the definition of the set. Every finding below is checked against day **
 
 | # | Finding | Payload | Section | Status |
 |---|---|---|---|---|
-| F1 | the world looks for about a month | `pipeline/01` | — | **guarded** |
+| F1 | the world looks for about a month | `pipeline/01`, `03` | `#held` | **BUILT** |
 | F2 | five readers to seven and a half million | `pipeline/01` | — | **guarded** |
 | F3 | almost half never go back down | — | `pipeline/01` | **guarded** |
 | F4 | the ones nobody saw coming keep the readers | `pipeline/02` | — | **guarded** |
@@ -91,7 +91,7 @@ that is the definition of the set. Every finding below is checked against day **
 | F7 | 47 of 220 share their date, and beat the calendar | `pipeline/02` | — | **guarded** |
 | F8 | the record is drifting up | — | — | **KILLED at step 2**, see the kill list |
 
-**Converted: 0 of 8.**
+**Converted: 1 of 7.**
 
 Every number above is asserted in `pipeline/`; `npm run data` exits 0 or nothing is built.
 The guard has now failed **nine** of its own claims across step 1 and step 2, and each was
