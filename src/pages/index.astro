@@ -226,23 +226,18 @@ const nf = new Intl.NumberFormat('en-US')
         stroke-width: 3px;
         stroke-linejoin: round;
       }
-      .plate .m-name { font-size: 14px; font-weight: 500; }
+      /* Size is emitted on each element by src/lib/marks/held.js, never set here: a CSS
+         breakpoint measures the viewport and the mark measures its own box, and the two
+         disagree by the page margins. */
+      .plate .m-name { font-weight: 500; }
       .plate .m-fig,
       .plate .m-tick,
-      .plate .m-note { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 14px; }
+      .plate .m-note { font-family: 'Martian Mono', ui-monospace, monospace; }
       .plate .m-note { font-weight: 600; }
-      .plate .m-band { font-size: 14px; }
       .plate .m-rows path { transition: opacity 120ms linear; }
       .plate.lit .m-rows path { opacity: 0.42; }
       .plate.lit .m-rows path.on { opacity: 1; }
 
-      @media (max-width: 639px) {
-        .plate .m-name,
-        .plate .m-fig,
-        .plate .m-tick,
-        .plate .m-note,
-        .plate .m-band { font-size: 13px; }
-      }
       @media (prefers-reduced-motion: reduce) { .plate .m-rows path { transition: none; } }
     </style>
 
