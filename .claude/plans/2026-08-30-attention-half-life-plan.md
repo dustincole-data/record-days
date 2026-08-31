@@ -57,3 +57,39 @@ asserting every number above against this record. Nothing is built until `npm ru
 exits 0.
 
 **Converted: 0 of 7.**
+
+---
+
+## Session 1b — 2026-08-30 · RE-RANK
+
+Dustin: *"goal is to find the most interesting information and make a project out of it that
+would actually interest people."* The first ranking was wrong for that goal. It put the most
+statistically robust finding first, and that finding needs two constructed metrics ("warning",
+"settle ratio") explained before it lands. The standards say the subject must be understood
+with no setup sentence.
+
+**Re-ranked for what a stranger cares about.** One new finding, mined for this and now the
+lead.
+
+- **F1 (new): the world looks for about a month.** Median **28 days**, range **1 to 340**.
+  The FIFA World Cup final held it for **1 day**; Jerry Springer for **340**. Everyone has a
+  sense that news fades and nobody has a number for it.
+- **F2: five readers to seven and a half million.** Pope Leo XIV, one day apart. Ten of the
+  220 were read under a thousand times the day before.
+- **F3: half never go back down.** 45.9%. Tasuku Honjo x503 and still there.
+- **F4** is the old F1, kept as the payoff rather than the opening.
+
+**The asset this dataset actually has** is that its top 40 is a roll-call of names everyone
+knows, each attached to an exact number: Kobe Bryant, David Bowie, Elizabeth II, Chadwick
+Boseman, Stephen Hawking, Matthew Perry, Betty White, Ruth Bader Ginsburg, Gene Hackman,
+Diane Keaton. A piece that hides those behind a metric wastes the whole thing.
+
+**Honesty carried forward:** a month-long tournament has no clean pre-window inside 30 days,
+so the World Cup's one day is partly its own baseline. That has to be said on the page, not
+buried.
+
+`research/verify.mjs` now asserts every number in the record and exits 0. It has failed four
+of its own claims across this session; each was corrected in the record and never in the
+guard.
+
+**Converted: 0 of 8.**
