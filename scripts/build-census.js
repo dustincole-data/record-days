@@ -14,9 +14,8 @@
 // 2022-09-08: 8,399,082 here, 10,312,178 there). Never mix the two inside one figure.
 import { writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { USER_AGENT } from '../src/lib/pageviews.js'
-import { API_START } from '../src/lib/classify.js'
 import {
-  eachDay, topUrl, foldDay, rank, qualify,
+  API_START, eachDay, topUrl, foldDay, rank, qualify,
   DROPPED_EXACT, DROPPED_NAMESPACES, QUALIFY,
 } from '../src/lib/census.js'
 
