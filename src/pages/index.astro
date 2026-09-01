@@ -21,6 +21,8 @@ import weekdayData from '../gen/weekday.json'
 import sharedData from '../gen/shared.json'
 import returnData from '../gen/return.json'
 import windowData from '../gen/window.json'
+import agreeData from '../gen/agree.json'
+import stopData from '../gen/stop.json'
 import { held } from '../lib/marks/held.js'
 import { arrival } from '../lib/marks/arrival.js'
 import { settle } from '../lib/marks/settle.js'
@@ -30,6 +32,8 @@ import { weekday } from '../lib/marks/weekday.js'
 import { shared } from '../lib/marks/shared.js'
 import { annual } from '../lib/marks/return.js'
 import { windows } from '../lib/marks/window.js'
+import { agree } from '../lib/marks/agree.js'
+import { stop } from '../lib/marks/stop.js'
 import { ACCENT, INK, MUTED, HAIR } from '../lib/ink.js'
 import DcdMark from '../components/DcdMark.astro'
 import { SITE } from '../lib/site.js'
@@ -43,6 +47,8 @@ const firstWeekday = weekday(weekdayData, 1180)
 const firstShared = shared(sharedData, 1180)
 const firstReturn = annual(returnData, 1180)
 const firstWindow = windows(windowData, 1180)
+const firstAgree = agree(agreeData, 1180)
+const firstStop = stop(stopData, 1180)
 const ten = artefactData.panels.filter((p) => p.group === 'scheduled')
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const shortDate = (iso) => +iso.slice(8, 10) + ' ' + MON[+iso.slice(5, 7) - 1] + ' ' + iso.slice(0, 4)
@@ -641,6 +647,223 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
 
         <p class="src">{src}</p>
       </section>
+
+      <section id="agree">
+        <p class="num">10</p>
+        <h2>How much traffic each page drew, next to the other pages whose record day was the same date</h2>
+        <p class="deck">
+          The census ranked <b>{agreeData.meta.ranked}</b> pages and a shape test kept
+          {' '}<b>{agreeData.meta.kept}</b> of them. Put the <b>{agreeData.meta.cutRows}</b> it threw
+          out back in and <b>{agreeData.stat.groups}</b> dates carry more than one page. One date
+          carries <b>{agreeData.stat.n}</b>, and their record days are all within
+          {' '}<b>{agreeData.stat.spreadPct}</b> per cent of each other.
+        </p>
+
+        <figure class="fig" id="agree-fig">
+          <div class="plate-box" id="agree-plate" set:html={firstAgree.svg}></div>
+          <div class="tip" id="agree-tip" hidden></div>
+          <figcaption>
+            Each row is one date. Each dot on it is one page, placed left or right by how its own
+            record day compares with the middle record day of the pages it shares that date with, so
+            a row whose pages drew the same traffic is a single mark on the centre line. A row is as
+            tall as the number of pages on it. Dots in pink are pages the shape test threw out; dots
+            in black are the {agreeData.meta.kept} pages drawn everywhere else on this page.
+          </figcaption>
+        </figure>
+
+        <details class="method">
+          <summary>How this is measured</summary>
+          <p>
+            On {shortDate(agreeData.meta.date)}, <b>{agreeData.stat.n}</b> pages each had the biggest
+            traffic day in their history. Their record days run from
+            {' '}{nf.format(agreeData.stat.lo)} to {nf.format(agreeData.stat.hi)} views — a largest
+            over smallest of <b>{agreeData.stat.spread}</b>, a coefficient of variation of
+            {' '}<b>{agreeData.stat.cv}</b> per cent, and {nf.format(agreeData.stat.total)} views
+            between them. Every one of the {agreeData.stat.n} is a country or a historical state, and
+            every one was thrown out by the shape test:
+          </p>
+          <p class="names">{agreeData.names.join(' · ')}</p>
+          <p>
+            <b>How many.</b> Dates are lumpy on their own, so the count is tested against the same
+            model the seventh section uses: each page keeps its year, its month and its weekday, and
+            only which matching day of that month it fell on is redrawn. Over
+            {' '}{nf.format(agreeData.calendar.draws)} draws that model puts
+            {' '}<b>{agreeData.calendar.expectRows}</b> pages on a shared date against the
+            {' '}{agreeData.stat.inGroups} observed, and its biggest single date holds
+            {' '}<b>{agreeData.calendar.expectMax}</b> pages on average and
+            {' '}<b>{agreeData.calendar.everMax}</b> at its most extreme. It never reached
+            {' '}{agreeData.stat.n}. p = <b>{agreeData.calendar.pMax.toExponential(1)}</b> for both.
+          </p>
+          <p>
+            <b>How close.</b> Sharing a date is a coincidence; agreeing to a hundredth is not. Draw
+            {' '}{agreeData.stat.n} pages at random from the same {agreeData.meta.ranked} and their
+            record days spread a median <b>{agreeData.tight.median}</b> times; the tightest of
+            {' '}{nf.format(agreeData.tight.draws)} draws is <b>{agreeData.tight.best}</b>, and none
+            reached {agreeData.stat.spread}. The file's peaks also crowd towards the bottom of the
+            ranking, so the same question was asked without any null at all: the tightest
+            {' '}{agreeData.stat.n} record days that can be assembled from anywhere else in the
+            {' '}{agreeData.meta.ranked} spread <b>{agreeData.stat.packed}</b> times, and they sit on
+            {' '}{agreeData.stat.n} different dates.
+          </p>
+          <p>
+            The research record for this project claimed every other multi-page date spreads at least
+            1.14 times, median 2.24. Both numbers were wrong and are corrected here.
+            {' '}<b>{agreeData.stat.minSpread3}</b> is the tightest other date carrying three or more
+            pages ({shortDate(agreeData.stat.runnerUp)}); three pairs are tighter than
+            {' '}{shortDate(agreeData.meta.date)} is, which is what pairs do when there are 33 of
+            them. The median over the other {agreeData.stat.groups - 1} dates is
+            {' '}<b>{agreeData.stat.medSpreadOthers}</b>, and the
+            {' '}{agreeData.stat.siteGroups} shared dates the seventh section draws spread a median
+            {' '}{agreeData.stat.medSpreadSite}.
+          </p>
+          <p>
+            A second reading agrees and does not look at size at all. The shape test records each
+            page's traffic on day seven against day three. <b>{agreeData.stat.fellRows}</b> of the
+            {' '}{agreeData.meta.ranked} pages are at {agreeData.meta.fallAt} of day three or less by
+            day seven, and <b>{agreeData.stat.fellHere}</b> of those {agreeData.stat.fellRows} are
+            this one date. So the {agreeData.stat.n} pages are not only the same size, they are the
+            same shape.
+          </p>
+          <p>
+            The other date whose pages agree is {shortDate('2018-01-18')}: JSON Web Token, HTTP
+            cookie, Access token and Session token, within
+            {' '}{Math.round((agreeData.groups.find((g) => g.d === '2018-01-18').spread - 1) * 100)}
+            {' '}per cent of each other, all four thrown out.
+          </p>
+          <p>
+            The limits. <b>{agreeData.stat.bandRows}</b> pages anywhere in the
+            {' '}{agreeData.meta.ranked} fall inside the value band these {agreeData.stat.n} occupy,
+            so {agreeData.stat.bandRows - agreeData.stat.bandHere} pages on other dates are that size
+            too; the band is busy, not empty. A thrown-out page has a peak, a date and three test
+            readings in the source file and no traffic history at all, so no page drawn in pink here
+            can appear on any chart on this page whose axis is days. And what produced this is not
+            identifiable from this extract: a crawler, a mirror and a redirect all leave the same
+            marks.
+          </p>
+          <p>
+            All {agreeData.stat.groups} dates, with the number of pages on each and how far apart
+            they are:
+          </p>
+          <ul class="roll">
+            {agreeData.groups.map((g) => (
+              <li><i>{shortDate(g.d)}</i>{g.n} pages, {g.spread === 1 ? 'identical' : 'within ' + Math.round((g.spread - 1) * 100) + '%'}{g.cut ? ' · ' + g.cut + ' thrown out' : ''}</li>
+            ))}
+          </ul>
+        </details>
+
+        <p class="src">{src}</p>
+      </section>
+
+      <section id="stop">
+        <p class="num">11</p>
+        <h2>How each page's traffic fell over the sixty days after its record day</h2>
+        <p class="deck">
+          Across <b>{stopData.stat.tested}</b> pages, the last day still being read at event scale
+          draws <b>{stopData.stat.median}</b> times the day after it. Four pages hold a flat top for
+          days and then fall <b>{stopData.snaps[0].snap}</b>, <b>{stopData.snaps[1].snap}</b> and
+          {' '}<b>{stopData.snaps[2].snap}</b> times overnight. The next largest in the file is
+          {' '}<b>{stopData.stat.nextDownSnap}</b>.
+        </p>
+
+        <figure class="fig" id="stop-fig">
+          <div class="plate-box" id="stop-plate" set:html={firstStop.svg}></div>
+          <figcaption>
+            Each line is one page. Left to right is the first {stopData.meta.days} days after its
+            record day; up is how many times that page's own normal traffic level it was reading that
+            day, so pages that drew 1.4 million and 15 million views sit on one scale. A line's
+            colour is that page's own return time, the same colour scale the first chart uses. The
+            four drawn dark and heavy stop dead: each is labelled with the day it stopped and, on a
+            wide screen, how many times its traffic fell overnight.
+          </figcaption>
+        </figure>
+
+        <details class="method">
+          <summary>How this is measured</summary>
+          <p>
+            <b>The snap.</b> Take the last day a page was still being read at event scale — above
+            {' '}{stopData.meta.scale} times its own normal level and at least
+            {' '}{nf.format(stopData.meta.floor)} views — and divide it by the day after. Attention
+            that is real is still coming down, so that ratio is small: over
+            {' '}<b>{stopData.stat.tested}</b> pages the middle value is
+            {' '}<b>{stopData.stat.median}</b>, three quarters are under {stopData.stat.p75} and nine
+            tenths under {stopData.stat.p90}. Three pages are at
+            {' '}<b>{stopData.snaps[0].snap}</b>, <b>{stopData.snaps[1].snap}</b> and
+            {' '}<b>{stopData.snaps[2].snap}</b>, and the fourth largest anywhere in the file is
+            {' '}{stopData.stat.nextDown} at {stopData.stat.nextDownSnap}.
+          </p>
+          <p>
+            <b>The dropout.</b> A separate reading that never looks at the end of an event: a single
+            day at least {stopData.meta.deep} times below both the day before it and the day after
+            it, where both of those are above {nf.format(stopData.meta.neigh)} views. An audience
+            cannot vanish and return overnight. Exactly {stopData.drops.length} pages in the file
+            have such a day — {stopData.drops.map((d) => d.t + ' (' + d.days.length + ')').join(', ')}
+            {' '}— and nobody else has one.
+          </p>
+          <p>
+            The two readings name <b>{stopData.stat.named}</b> pages between them and agree on
+            {' '}{stopData.stat.both}. {stopData.story['Index_(statistics)'].t} sat at
+            {' '}{stopData.story['Index_(statistics)'].base} views a day, held
+            {' '}<b>{stopData.story['Index_(statistics)'].run.days}</b> straight days at event scale
+            running {nf.format(stopData.story['Index_(statistics)'].run.lo)} to
+            {' '}{nf.format(stopData.story['Index_(statistics)'].run.hi)}, and read
+            {' '}<b>{stopData.story['Index_(statistics)'].snapTo}</b> the next day.
+            {' '}{stopData.story["Cook's_Country"].t} sat at
+            {' '}{stopData.story["Cook's_Country"].base} views a day, read 57 two days before its
+            record day and 833,826 one day before it, and
+            {' '}{stopData.story["Cook's_Country"].snapTo} on day
+            {' '}{stopData.story["Cook's_Country"].snapDay + 1}.
+            {' '}{stopData.story['Question_mark'].t} read 522,905 on day one,
+            {' '}<b>1,142</b> on day two and 638,607 on day three.
+          </p>
+          <p>
+            {stopData.story['Dulce_María'].t} is named by the dropout reading and not by the snap,
+            and the reason is worth stating: her traffic is still above
+            {' '}{stopData.meta.scale} times her own normal level on day 400, the last day this file
+            covers, so there is no day after to divide by. She is one of
+            {' '}{stopData.stat.stillRunning} pages in that position; {stopData.stat.noScale} more
+            never reach event scale at all, which is why the snap is read on
+            {' '}{stopData.stat.tested} pages rather than {stopData.stat.drawn}. Her four dropout
+            days are {stopData.drops[0].days.join(', ')}, past the right edge of this chart. What the
+            chart points at instead is her steepest single day inside it: day
+            {' '}<b>{stopData.story['Dulce_María'].fallDay}</b>, from
+            {' '}{nf.format(stopData.story['Dulce_María'].fallFrom)} views to
+            {' '}{nf.format(stopData.story['Dulce_María'].fallTo)}.
+          </p>
+          <p>
+            The same reading applied to the other three points at the same day the snap does for
+            two of them and not for {stopData.story['Question_mark'].t}, whose steepest day inside
+            this window is its dropout on day {stopData.story['Question_mark'].fallDay + 1} —
+            {' '}<b>{stopData.story['Question_mark'].fallBy}</b> times in one day, larger than the
+            {' '}{stopData.story['Question_mark'].snap} it falls when it finally stops on day
+            {' '}{stopData.story['Question_mark'].snapDay}. The two readings disagree about which of
+            its days matters most, which is why both are kept.
+          </p>
+          <p>
+            These four are in every other chart on this page and move none of them. The middle
+            return time is <b>{stopData.contam.durMedian}</b> days with them and
+            {' '}<b>{stopData.contam.durMedianNo}</b> without. The share of pages settling above
+            their own normal level is <b>{stopData.contam.settleAbove}</b> per cent with them and
+            {' '}<b>{stopData.contam.settleAboveNo}</b> without.
+          </p>
+          <p>
+            <b>What caused this is not identifiable from this extract</b> and nothing here names a
+            cause. An automated crawl, a mirror and a redirect pointed at a title all draw the same
+            rectangle in a pageview file, and nothing in the census separates them. What is reported
+            is the shape, which two unrelated readings agree on and which no readership in the file
+            has.
+          </p>
+          <p>
+            {stopData.stat.drawn} of the {stopData.stat.all} pages are drawn. The other
+            {' '}{stopData.stat.all - stopData.stat.drawn} have no quiet month before their record
+            day to measure a normal level against, which is the same six the first chart leaves out.
+            Two pages have days the source never returned and are drawn as broken lines. A page
+            reading below its own normal level is drawn on the bottom line rather than under it,
+            so the floor of this chart is a floor and not a reading.
+          </p>
+        </details>
+
+        <p class="src">{src}</p>
+      </section>
     </main>
 
     <DcdMark />
@@ -699,6 +922,9 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
       .method b { color: var(--ink); font-weight: 500; font-family: 'Martian Mono', ui-monospace, monospace; }
       /* The nineteen shared dates. Nineteen labels cannot be placed on the plate without
          collisions, so the roll-call lives here instead. */
+      /* The twenty-two titles of beat 10. They are the finding, so they are set in the page's
+         ink rather than the muted grey the rest of the method uses. */
+      .names { margin: 0 0 12px; font-size: 14px; line-height: 1.55; color: var(--ink); }
       .roll { margin: 0 0 12px; padding: 0; list-style: none; font-size: 14px; line-height: 1.5; color: var(--muted); }
       .roll li { margin: 0 0 3px; }
       .roll i {
@@ -724,7 +950,7 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
         .deck { font-size: 16px; margin-bottom: 20px; }
         .deck b { font-size: 14px; }
         .src { padding: 16px 16px 34px; font-size: 13px; }
-        figcaption, .method p, .method summary, .tip, .roll { font-size: 13px; }
+        figcaption, .method p, .method summary, .tip, .roll, .names { font-size: 13px; }
       }
       @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
     </style>
@@ -808,6 +1034,8 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
       import sharedData from '../gen/shared.json'
       import returnData from '../gen/return.json'
       import windowData from '../gen/window.json'
+      import agreeData from '../gen/agree.json'
+      import stopData from '../gen/stop.json'
       import { held } from '../lib/marks/held.js'
       import { arrival } from '../lib/marks/arrival.js'
       import { settle } from '../lib/marks/settle.js'
@@ -817,6 +1045,8 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
       import { shared } from '../lib/marks/shared.js'
       import { annual } from '../lib/marks/return.js'
       import { windows } from '../lib/marks/window.js'
+      import { agree } from '../lib/marks/agree.js'
+      import { stop } from '../lib/marks/stop.js'
 
       // Draw at the width the reader actually has. The server render is one width and any
       // other width would be that drawing stretched, which moves every label off its gate size.
@@ -830,6 +1060,8 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
         ['shared-plate', sharedData, shared],
         ['return-plate', returnData, annual],
         ['window-plate', windowData, windows],
+        ['agree-plate', agreeData, agree],
+        ['stop-plate', stopData, stop],
       ]
       for (const [id, data, mark] of PLATES) {
         const box = document.getElementById(id)
@@ -849,7 +1081,7 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
       // Pointing at a mark lights it and dims its field. Only the plates whose marks are one
       // page each carry it: a tick in a rug, a shape over forty pages and a panel that is
       // already named on the plate are not rows a readout can add anything to.
-      for (const key of ['held', 'settle', 'shared']) {
+      for (const key of ['held', 'settle', 'shared', 'agree']) {
         const box = document.getElementById(key + '-plate')
         const fig = document.getElementById(key + '-fig')
         const tip = document.getElementById(key + '-tip')

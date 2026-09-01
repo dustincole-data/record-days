@@ -773,3 +773,157 @@ within 1% — needs the 222 cut rows restored in a second ink) and F12 (four row
 F13's own section is optional now that the correction is shipped.
 
 **Converted: 9 of 14.**
+
+---
+
+## Session 8 — 2026-08-31 · FINISH STEP 4 (F11 and F12)
+
+The last two ranked findings are built as beats 10 and 11 in the approved dress. The dress was not
+reopened. `npm run data` is **526 checks, exits 0** (390 at the top of the session, 451 after F11,
+526 after F12). Both are **appended** as 10 and 11, so no shipped section's number moved. Nothing
+deployed. **Converted: 11 of 14** — and the three still open were never ranked above "low".
+
+### The forms, and why no two are the same
+
+Nine already spent: sorted duration field, two-sided rug, unit histogram, density ridges, small
+multiples, two-trace waveform, date × size scatter, raster, climbing quantile ribbon. The
+shipped-project list is unchanged.
+
+| Beat | Axis | Hero | Why it is not any beat above it |
+|---|---|---|---|
+| 10 `#agree` | **each page against the middle page of its own date** — a ratio, not views and not the calendar | a **centred dispersion stack**: 49 rows in date order and unspaced, a row's WIDTH is how badly that date disagrees and its HEIGHT is how many pages are on it | the only plate whose horizontal is a within-group ratio and the only one where a mark's *absence of width* is the finding. Not beat 01 (those start at a wall and their length is a duration), not the rug (one axis, one distribution — this is 49, each normalised to itself), not the histogram (nothing binned or stacked) |
+| 11 `#stop` | **days 0 to 60, and a multiple of the page's own normal level** | a **trace field**: 214 rows in one box, 210 translucent and four dark over them | the only plate that draws every row as its own line on real days. Not beat 05, which puts a month on the axis twenty times in twenty separate boxes; not beat 06, two traces on a cycle filled to a pivot; not beat 09, quantiles of a fitted model against a window length the analyst chose |
+
+**F11's proposed mark was rejected and replaced, the same way F7's was.** The record asked for "the
+442 on a date axis with the 222 cut rows restored in a second ink". A date × size scatter *is* beat
+07. What survives of the proposal is the part that mattered — restoring the cut rows in a second ink —
+and it is now load-bearing rather than decorative: **the needle row is entirely in the second ink**,
+because the gate threw out all 22 of them, which is why pass one never saw the largest coincidence in
+the file.
+
+### Two decisions about ink worth keeping
+
+- **`#agree`'s colour channel carries provenance and nothing else.** The plate has a spare channel —
+  a row's height is how many pages the date carries — so nothing had to be doubled up into hue. The
+  pair was validated as **the two inks that actually touch**, not as a palette: `INK #16181D` against
+  `ACCENT #B31E63` is ΔE **20.1 protan / 31.5 deutan**, while the page's own `MUTED #565C68` against
+  the same accent is **2.8 protan** — indistinguishable. That is why kept rows are drawn at full ink
+  strength and never faded, and why fading them to any grey lighter than about `#393b3f` (ΔE 10.2)
+  would have quietly destroyed the encoding. Size and lightness repeat the distinction, so no reader
+  resolves it by hue alone.
+- **`#stop`'s colour is beat 01's ramp and means what it means there.** Up that plate is a multiple of
+  a page's own level, but a trace's *colour* is that page's own return time, and a page that never
+  returned takes the top stop — which is the rule beat 01 already publishes. `13` reads `plate.json`'s
+  stops rather than restating them. That is the site's **fourth shared scale** (03/04, 01/09, 01/11)
+  and, like the others, it is a claim and is guarded. The four are lifted by weight and darkness
+  instead, because hue was already spent.
+
+### What the guard changed this session — eight claims, and a new *kind* of failure
+
+`pipeline/12_agree.mjs` and `13_stop.mjs`, **136 new checks**. The first six sessions' failures were
+arithmetic. These were **rules**.
+
+- **F11's "every other multi-page date spreads at least 1.14x, median 2.24x" is false in both halves.**
+  1.1410 is the minimum over dates carrying **three or more** pages, quoted in the record as a minimum
+  over every other date. **Three pairs are tighter than 2017-05-22 is** — 1.0036, 1.0319, 1.0688 —
+  which is exactly what pairs do when the file has 33 of them. The median over the other 48 is
+  **1.5549**, not 2.24. Nothing in the numbers looked wrong; the *quantifier* was wrong.
+- **So the claim was re-evidenced rather than re-worded.** Two tests were added because the corrected
+  comparison is too weak to carry it alone. A **tightness null**: 22 rows drawn at random from the same
+  442 spread a median **6.74x**, the tightest of 20,000 draws is **2.02x**, none reaches 1.0113. And a
+  **packing control that is not a null at all**, because the file's peaks crowd at the bottom of the
+  ranking and a reader can fairly ask whether any 22 rows down there look tight: the tightest 22 record
+  days assembled from **anywhere else** in the 442 spread **1.0272x**, across 22 different dates. The
+  finding beats the best the file can do without it.
+- **A second signature that never looks at size.** The gate stores each row's day seven against its day
+  three. **43** of the 442 are at 0.15 or less and **22 of those 43 are this one date**. The 22 are not
+  only the same size, they are the same shape — and that column was sitting in `meta.disqualified` the
+  whole time.
+- **F12's fourth row was quoted with a snap its own definition cannot produce.** `Dulce_María` at "40x"
+  does not reproduce, and no rule that stops at the end of a file can produce one for her: her traffic
+  is **still above 20x her own level on day 400**, the last day covered, so there is no day after to
+  divide by. She is one of four rows in that position; three more never reach event scale, which is why
+  the snap is read on **207** rows and not the record's 211 (median **1.783** not 1.77, p90 **6.09** not
+  4.89).
+- **The finding survives in better shape than the record described it.** The snap names three rows and
+  the dropout names three rows and neither names all four: **two tests, each finding three and nobody
+  else, name four pages between them and agree on two.** `Question_mark` has **2** dropout days, not the
+  record's 3. `Index_(statistics)` held **20** straight days at event scale, not 19 — and it is measured
+  with this section's own event-scale rule rather than the third threshold the record's sentence implied.
+- **The guard then caught my own over-generalisation, which is the part worth keeping.** Having found
+  that `run.to` was the wrong day to point Dulce María's label at, I unified all four on "the steepest
+  single-day fall in the window" and asserted the three snap rows would agree. **They do not.**
+  `Question_mark`'s steepest day inside 60 days is its **dropout** — 457.9x on day 2 — which is larger
+  than the 81.8x it falls when it finally stops on day 48. A single "biggest fall" rule cannot stand in
+  for the snap, and the disagreement is now guarded as a fact rather than smoothed away. It is the
+  cleanest illustration on this project of why the assertion goes in before the drawing does.
+- Guarded as **relations**, not only as numbers: that the largest group is also the tightest of every
+  group above a pair; that no group of three or more is within a per cent of it; that the calendar null
+  never reaches 22 in 20,000 draws; that all three named snaps are at least 40× the file's middle and at
+  least 7× the fourth-largest **while the fourth-largest is under 7× the middle**. "Nothing else does
+  this" is false the moment the gap closes, and only a guard on the gap catches it.
+- **`meta.disqualified` carries no `series`**, which `12` asserts, and which is why no page drawn in the
+  second ink can appear on any plate whose axis is days.
+
+### What the ladder found that the gate did not — one root cause, three bugs
+
+The gate was AUDIT CLEAN at four widths while the ladder failed 35 checks at six.
+
+| Bug | The rule |
+|---|---|
+| Every y label on beat 11 started **outside** the plate, and beat 10's two key swatches printed **on top of each other at every width from 620 up** | **Measure a label in the face it is set in.** `m-tick` is the mono, which runs half again as wide as the sans at the same size: a gutter sized at the sans ratio came out 70px for a label that renders 84px, and a key advanced at the sans ratio put the second swatch 90px inside the first label's ink |
+| Beat 11's cliff labels ran 525px in the mono | The figure is **set short** — `day 14, ÷817.9` — and the method carries the sentence. The same fallback beat 08's key already uses |
+| Two labels collided at 390 and 500 after I nudged one out of the way and clamped it back inside the plate | **Give every label its room before assigning any of them a row.** Nudge-then-clamp puts a label straight back on what it was moved off; two of the four pages stop on the *same day*, so their anchors share an x and the clamp had nowhere to go. Rows are handed out top to bottom now, each at least two line-heights below the last |
+
+### And one thing no script found, because scripts do not look at pictures
+
+- **Beat 11's phone labels were laid across the mark.** Four two-line labels in a 340px plot put 146px
+  of mono over the densest part of the sheaf four times. **No two of them collided, which is why the
+  ladder passed it** — the ladder checks label against label, and this was label against mark. On a
+  phone the figure line is now dropped and only the names are drawn. Seen in the shots, not in a check.
+- **Beat 10's year gutter had 2016 missing.** Labelled at each year's *first row*, 2015 (one row) and
+  2016 (five) sat ten pixels apart and one was suppressed as a collision — and a missing year in a run
+  of years reads as a hole in the data, not as a label that would not fit. Years are labelled at the
+  **middle of their own block** now, and a hairline marks each boundary so the structure survives
+  wherever a label still cannot be drawn.
+- **Beat 11 pointed at the wrong day for one page.** Dulce María's label read "day 21", the end of her
+  longest event-scale run — a dip she climbs straight back out of — while the eye was already on the
+  cliff at day 47. Caught by looking at the plate, then fixed in the payload and guarded there.
+
+### The copy, under Dustin's rule
+
+| Beat | Heading | The caption's first sentence |
+|---|---|---|
+| 10 | How much traffic each page drew, next to the other pages whose record day was the same date | "Each row is one date." |
+| 11 | How each page's traffic fell over the sixty days after its record day | "Each line is one page." |
+
+Beat 10 names all 22 titles in its method, prints the false claim it corrected **as a correction on the
+page**, and states its own limits: 29 rows anywhere in the file are that size, so the band is busy
+rather than empty, and **what produced this is not identifiable from this extract**. Beat 11 says the
+same about its four in bold — a crawl, a mirror and a redirect draw the same rectangle — and reports
+the shape, which two unrelated readings agree on and no readership in the file has.
+
+### Harness
+
+- `gate.mjs` — **AUDIT CLEAN** at 1440 / 820 / 390 / 320, all eleven sections, all three faces loaded.
+- `ladder.mjs` — **LADDER CLEAN** at 320/360/390/500/620/660/700/820/1180/1440.
+- `interact.mjs` — all pass. Eleven sections, eleven marks with alt text, no scroll trap, no page errors.
+- `shots.mjs` — six widths, eleven sections each, no horizontal overflow anywhere.
+- Hover added at `#agree` and not at `#stop`. Beat 10's marks are one page each and naming the 22 is
+  exactly what a reader wants there, so each dot carries an invisible halo as its hit target, the way
+  beat 07's do. Beat 11's marks are 214 one-pixel polylines, which is not a target a pointer can find.
+- **The preview-server note from session 7 cost time again and the warning should be read differently.**
+  `astro preview` had left a **daemon of its own** running on 4356 from an earlier session, and a fresh
+  `astro preview --port 4467` did not start a server — it printed "already running" and exited 0. Run
+  `astro preview stop` first, then verify the served HTML carries this page's own title and its section
+  ids before trusting a single number the harness prints.
+
+### Open
+
+Unchanged: the site's name, the subdomain, the OG card, and `favicon.svg` / `src/lib/site.js` still
+pointing at the deleted piece. **Nothing deployed, no remote.** Step 4 is finished — F13's second half,
+F14 and F15 are ranked and optional, and none was ever ranked above "low". Next is **step 6, deepen**:
+polish, and re-dress anything wearing an older dress. That is now allowed for the first time on this
+project, because the walk exists.
+
+**Converted: 11 of 14.**
