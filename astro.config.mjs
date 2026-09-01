@@ -2,7 +2,7 @@
 import { defineConfig } from 'astro/config'
 import { SITE } from './src/lib/site.js'
 
-// The Cast — one page, pure static, no adapter. The marks are drawn as SVG by
+// Record Days — one page, pure static, no adapter. The marks are drawn as SVG by
 // src/lib/marks/*, server-rendered at a default width and redrawn client-side at
 // the width the reader actually has.
 export default defineConfig({

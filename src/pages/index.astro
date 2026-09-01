@@ -55,6 +55,16 @@ const shortDate = (iso) => +iso.slice(8, 10) + ' ' + MON[+iso.slice(5, 7) - 1] +
 const w = plate.meta.window
 const nf = new Intl.NumberFormat('en-US')
 const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents only. ${w.start} to ${w.end}. Public domain, CC0.`
+
+// The site's name, and the one sentence that says what it is. Both are read three times each
+// -- the tab, the card, the header -- so they are written once here.
+const NAME = 'Record Days'
+const TITLE = `${NAME} — the biggest traffic day of ${plate.stat.all} Wikipedia pages`
+const DESC = `${plate.stat.all} English Wikipedia pages, each shown on the single biggest traffic ` +
+  `day it has ever had, and how long its traffic stayed high afterwards. Of the ${plate.stat.back} ` +
+  `that came back to their normal level, the middle one took ${plate.stat.median} days. ` +
+  `${plate.stat.holdout + plate.stat.running} never came back.`
+const CARD = `${SITE}/og.png`
 ---
 
 <!doctype html>
@@ -62,9 +72,23 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Wikipedia's Biggest Traffic Days</title>
-    <meta name="description" content={`${plate.stat.all} English Wikipedia pages, each shown on the single biggest traffic day it has ever had, and how long its traffic stayed high afterwards.`} />
+    <title>{TITLE}</title>
+    <meta name="description" content={DESC} />
     <link rel="canonical" href={SITE} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={NAME} />
+    <meta property="og:url" content={SITE} />
+    <meta property="og:title" content={TITLE} />
+    <meta property="og:description" content={DESC} />
+    <meta property="og:image" content={CARD} />
+    <meta property="og:image:width" content="2400" />
+    <meta property="og:image:height" content="1260" />
+    <meta property="og:image:alt" content={`Bar chart. ${plate.stat.drawn} Wikipedia pages, one bar each, sorted shortest to longest, showing how many days each took to return to its normal traffic level after its record day.`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={TITLE} />
+    <meta name="twitter:description" content={DESC} />
+    <meta name="twitter:image" content={CARD} />
+    <meta name="theme-color" content="#ffffff" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/martian-mono-var-latin.woff2" />
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/schibsted-grotesk-var-latin.woff2" />
@@ -72,10 +96,11 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
 
   <body>
     <header class="head">
-      <h1>Wikipedia's Biggest Traffic Days</h1>
+      <h1>{NAME}</h1>
       <p class="stand">
         <b>{plate.stat.all}</b> English Wikipedia pages, each shown on the single biggest
-        traffic day it has ever had. Those days drew between
+        traffic day it has ever had, and how long its traffic stayed high afterwards. Those
+        days drew between
         {' '}<b>{(plate.stat.minPeak / 1e6).toFixed(1)}</b> and
         {' '}<b>{(plate.stat.maxPeak / 1e6).toFixed(1)}</b> million views, and they happened
         between {plate.stat.from} and {plate.stat.to}.
@@ -885,8 +910,8 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
       h1 {
         font-family: 'Martian Mono', ui-monospace, monospace;
         font-weight: 600;
-        font-size: 26px;
-        letter-spacing: -0.02em;
+        font-size: 40px;
+        letter-spacing: -0.03em;
         margin: 0;
       }
       .stand { margin: 10px 0 0; max-width: 58ch; color: var(--muted); font-size: 16px; }
@@ -943,7 +968,7 @@ const src = `Wikimedia daily pageviews, en.wikipedia, all-access, user agents on
 
       @media (max-width: 639px) {
         .head { padding: 34px 16px 4px; }
-        h1 { font-size: 21px; }
+        h1 { font-size: 29px; }
         .stand { font-size: 15px; }
         section { padding: 30px 16px 6px; }
         h2 { font-size: 23px; }
