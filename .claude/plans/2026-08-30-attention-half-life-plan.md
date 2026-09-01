@@ -927,3 +927,97 @@ polish, and re-dress anything wearing an older dress. That is now allowed for th
 project, because the walk exists.
 
 **Converted: 11 of 14.**
+
+---
+
+## Session 9 — 2026-08-31 · SHIP (named, dressed, deployed)
+
+The piece was finished and anonymous: it wore the deleted Cast piece's origin and favicon and
+emitted no social tag at all. It is now **Record Days**, live on its own Vercel project, with
+its own two brand marks drawn from its own payload. The dress was not reopened and no shipped
+section's number moved. `npm run data` is unchanged at **526 checks, exits 0**.
+
+### The name, written once
+
+`NAME` / `TITLE` / `DESC` are three consts in the page's frontmatter, read from there by the
+tab, the card and the header. The h1 is the name; the standfirst directly under it is what
+carries the copy rule, and it gained the clause the old h1 never had — *and how long its
+traffic stayed high afterwards*. The title still names the measurement:
+`Record Days — the biggest traffic day of 220 Wikipedia pages`.
+
+**The h1 went 26px → 40px (29px on a phone), and that is a consequence of the name, not a
+restyle.** At 26px the old h1 was a full sentence in the mono and read as a title band; two
+words at the same size read *smaller* than the 30px section headings under it, so the page
+appeared to open on section 01.
+
+### Both brand marks come out of `plate.json` — `scripts/marks.mjs`
+
+The card and the favicon are **beat 01 at two sizes**: the same payload, the same ramp from
+`ink.js`, the same rules — one tapered bar per page, sorted shortest first, a bar's ink is its
+own duration, the 35 that never returned held in a band that dissolves off the right edge, the
+median cased in the ground, the ramp beneath as the key. No stock gradient, no second palette,
+no number typed in by hand.
+
+- **The card's headline is a finding, and the script refuses to render if it stops being
+  true.** *Half the pages that came back took 28 days or less. 35 never came back.* — 90 of
+  the 179 returners are at or under the median, asserted before the browser opens; 35 is
+  `holdout + running`, which is the band caption's own sentence. The type goes in the white
+  corner the sorted curve leaves above itself, which is where the page already hangs its names,
+  so the mark is never cropped to make room for words. Every `<text>` box is measured against
+  the card and the render throws if one runs off it.
+- **The fonts are base64-embedded and checked.** A page built with `setContent` has no origin,
+  so a `file://` or absolute font URL resolves to nothing and the browser falls back in silence.
+  `document.fonts.check` has to report both faces before a pixel is written.
+- **The favicon was picked at 16px, not at 128px.** Three candidates were drawn from the data
+  and looked at at 16 / 24 / 32 on both a light and a dark tab bar: five bars at the ramp's own
+  five stops, seven real pages at their real lengths, and the filled silhouette. **The two bar
+  versions collapse into a column of dots**, because three quarters of these pages return
+  inside a sixth of the axis and the top bars are sub-pixel. Only the silhouette survives, and
+  only with a floor under the mark's width — without it the top half of the wedge is thinner
+  than a pixel and the shape loses its wall. It reads at 16px as a hot spine falling into a
+  long tail over a gold bar, which is what the plate reads as at full size.
+
+### Deployed
+
+| | |
+|---|---|
+| Repo | `git@github.com:dustincole-data/record-days.git`, public, default branch `master` |
+| Vercel | project `record-days` in `dustincole-datas-projects`, connected to the repo so a push deploys |
+| Project URL | `https://record-days-five.vercel.app` — **verified there, not on the per-deployment URL**, which SSO-redirects and lies |
+| Domain | `recorddays.dustincoledata.com` added to the project and verified by Vercel |
+
+**`the-cast` is still a live Vercel project serving `cast.dustincoledata.com`, and this
+directory was still linked to it** — `.vercel/project.json` survived the wipe because it is
+git-ignored. The link was replaced, not the project: nothing was deleted, and whether The Cast
+should come down is a separate question that was not answered here.
+
+### The one thing that is not done, and cannot be done from here
+
+DNS for `dustincoledata.com` is at Namecheap (`dns1.registrar-servers.com`), so the record is
+added by hand:
+
+> **CNAME** · host `recorddays` · value `03d3fd00ed0f4635.vercel-dns-017.com.`
+
+The per-project `vercel-dns-017` form, not `cname.vercel-dns.com` — that is what every other
+live subdomain on this domain uses. Until it exists the domain is *verified but misconfigured*
+and `recorddays.dustincoledata.com` does not resolve. The certificate issues itself once it
+does; if it does not, `vercel certs issue`.
+
+### Harness
+
+Every gate re-run after the h1 change, against a preview server whose served HTML was checked
+for **this page's** title first — `astro preview stop`, then a fresh port, because 4331 already
+had two other listeners squatting the loopback addresses and a server bound to `0.0.0.0` loses
+to them.
+
+- `npm run data` — **526 checks, exits 0**.
+- `gate.mjs` — **AUDIT CLEAN** at 1440 / 820 / 390 / 320, all eleven sections, all three faces.
+- `ladder.mjs` — **LADDER CLEAN** at ten widths.
+- `interact.mjs` — all pass. Eleven sections, eleven marks with alt text, no scroll trap, no errors.
+
+### Open
+
+Unchanged from session 8 and still nothing above "low": step 6 deepen/polish, F13's second half,
+F14, F15. New: **the Namecheap CNAME**, and the open question of what happens to `the-cast`.
+
+**Converted: 11 of 14.**
