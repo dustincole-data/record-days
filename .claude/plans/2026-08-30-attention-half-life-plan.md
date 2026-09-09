@@ -1082,3 +1082,56 @@ minute (verified: six section ids served). Preview project `record-days-next` de
 **Open for the next session:** the tile (`scripts/tile.mjs` composes beat 01 from `plate.json`; the
 hero still IS the field, so re-run and re-check at delivery size), `public/og.png` via `scripts/marks.mjs`,
 the favicon, and the card line in dustincoledata `projects.ts` against what the page now claims.
+
+## Session 11 — 2026-09-09 · the off-page marks, re-run against the redesigned page
+
+### The marks needed no change, and that is a finding rather than a skip
+
+All three off-page marks compose from `src/gen/plate.json` — they are never screenshotted off
+the page — and the six-section redesign changed the page's *sections*, not beat 01's data or
+its composition. So `scripts/tile.mjs` and `scripts/marks.mjs` were re-run and their output
+re-rendered **byte-identical** to what is committed and what is live:
+
+| mark | live vs local | note |
+|---|---|---|
+| `public/og.png` | md5 identical | 2400x1260, both faces loaded, 90/179 at or under 28 days |
+| `public/favicon.svg` | md5 identical | 900 bytes |
+| `public/tile/record-days.webp` | md5 identical on dustincoledata | re-encode differed by 10 bytes |
+
+The tile's re-encode was reverted rather than committed: a pixel diff of old against new was
+72,527 channels of 4,320,000 at a **maximum delta of 9/255** — webp encoder nondeterminism, no
+visible change — and committing it would have churned a binary in two repos for nothing.
+
+Looked at at delivery size, not just generated: the tile at 1200x900 **and** at the 418px the
+wall serves it, the og at 1200x630, the favicon at 128/32/16. The hero is still the field, so
+the tile still is the page's own first mark. All read.
+
+### What was actually wrong: the card line, and not for being stale
+
+The four numbers were all correct (220 pages, 179 back, 28 days median, 35 never). The line was
+**222 characters — the longest on the wall by 16** — and the wall clamps a card line to four
+lines. Measured through the live card's own font and box:
+
+- **at 390px, where the line box is 350px, Record Days was the only one of 28 cards that
+  overflowed.** How Tall's own comment names 390px as the size it was cut to fit, so that is
+  the wall's bar, and this card was the single thing under it.
+- What the clamp ate was the last three words. The card ended on *"and 35..."* — it printed the
+  count and swallowed **"never came back"**, which is the finding.
+
+Cut to 179 characters at `dustincole_data@d37e13e`, dropping the clause about how long traffic
+stayed high (which "came back to normal ... took 28 days" already says) and keeping every
+number. Four lines at 360, 390, 430 and 1440; verified on the built site before pushing.
+
+**Pre-existing, left alone:** at 360px five other cards still overflow the clamp — How Tall,
+What America Eats, The Year of Everything, What the Government Buys, Meaning Map. The wall is
+cut to 390px, so this is the wall's standard rather than a regression, and it is not this
+task's scope.
+
+### Lesson
+
+A card line that is factually current can still be broken. "Is it stale?" only checks the
+numbers; the clamp is what decides whether the reader ever sees them.
+
+### Still open
+
+`cast.dustincoledata.com` serves the deleted Cast piece. Unruled, and not this project.
