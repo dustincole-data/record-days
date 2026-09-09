@@ -1072,3 +1072,13 @@ widths per pass, five passes.
 
 Separate Vercel project `record-days-next`; the `record-days` project and
 recorddays.dustincoledata.com are untouched until he approves.
+
+### Approved and published, 2026-09-09
+
+Dustin: "love. publish and complete with thumbnail etc in the next session." `redesign` fast-forwarded
+into `master` at `bc8a17a`; the git-connected deploy put it on recorddays.dustincoledata.com within a
+minute (verified: six section ids served). Preview project `record-days-next` deleted, branch retired.
+
+**Open for the next session:** the tile (`scripts/tile.mjs` composes beat 01 from `plate.json`; the
+hero still IS the field, so re-run and re-check at delivery size), `public/og.png` via `scripts/marks.mjs`,
+the favicon, and the card line in dustincoledata `projects.ts` against what the page now claims.
