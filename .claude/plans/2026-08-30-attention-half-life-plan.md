@@ -1021,3 +1021,54 @@ Unchanged from session 8 and still nothing above "low": step 6 deepen/polish, F1
 F14, F15. New: **the Namecheap CNAME**, and the open question of what happens to `the-cast`.
 
 **Converted: 11 of 14.**
+
+---
+
+## Session 10 — 2026-09-08 · REDESIGN, one variation for review (branch `redesign`)
+
+Dustin's brief, in spirit: the site is "very boring, way too many words, so much on it", text
+overlaps, clunky; make it interactive and impressive, beautiful on web AND phone (two views),
+cut every analytic that is not interesting or does not make sense, zero room for confusion,
+no wit. Keep the theme. Build one variation, three fine-tooth passes, then serve a link.
+
+### What shipped on the branch
+
+- **Six sections from eleven.** Kept: F1 field (hero), F2 the leap, F3 settled, F6 weekday,
+  F7 timeline, plus a closing wall of all 220 names. Cut: 04 groups, 05 artefact, 08 return
+  (the one-year framing he killed), 09 window, 10 agree, 11 stop, every section that explained
+  a method rather than showed a measurement. Method is one folded block at the foot.
+- **Words cut by roughly 85%.** Per section: heading, one deck of one to two sentences, one
+  caption saying what one mark is. No per-section method, no repeated encodings.
+- **The hero is a stopwatch you can run.** A white curtain over the field is "today"; a knob on
+  the axis drags it; a replay from day 0 runs on arrival (5.2s, eased slow through the first
+  month where most pages return); the readout counts pages back and still high per day; a
+  hidden range input carries the keyboard. The needle line hides at rest so it never cuts names.
+- **The leap** is a fan of 220 curves from day-before (bottom baseline) to record day (top),
+  one indigo hue; **settled** is a two-hue dot histogram either side of the 1× line; **weekday**
+  is seven columns with the even-spread line; **the timeline** runs left to right on wide boxes
+  and DOWN the page on phones, with a card that opens any tapped page's own 98-day series
+  (new pipeline step `14_pages.mjs`, lazy chunk); **the wall** flows all 220 names coloured by
+  return days, shortest first, with the ramp as its key.
+- Motion: one wipe per mark on first view, wall fade, hover/tap holds per the touch rules.
+  Every mark is complete with no script; reduced motion gets none of it.
+
+### Harness
+
+gate CLEAN x4, ladder CLEAN x10, interact all pass including new project checks (knob drag,
+replay, keyboard, three tooltips, dot selection on phone under the sticky card). Shots at six
+widths per pass, five passes.
+
+### Lessons this session produced
+
+- A clipPath over 214 paths re-rasterizes every frame; a moving white rect over static rows
+  costs one rect. The clip delayed wheel scrolling by about 500ms on an emulated phone; the
+  curtain does not.
+- Astro strips whitespace between inline items: a `ul` of `nowrap` inline `li`s became one
+  35,000px line. Flex-wrap, not inline flow.
+- The rAF frame timestamp can predate a `performance.now()` taken before the loop; clamp t.
+- Element screenshots capture the first frame of a wipe; the shots harness now waits it out.
+
+### Deployed for review
+
+Separate Vercel project `record-days-next`; the `record-days` project and
+recorddays.dustincoledata.com are untouched until he approves.

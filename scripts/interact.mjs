@@ -13,7 +13,7 @@
 import { chromium } from 'playwright-core';
 
 const BASE = process.argv[2] ?? 'http://[::1]:4331/';
-const SECTIONS = ['#held', '#arrival', '#settle', '#groups', '#artefact', '#weekday', '#shared', '#return', '#window', '#agree', '#stop'];
+const SECTIONS = ['#field', '#leap', '#settled', '#weekdays', '#timeline', '#all'];
 
 let fails = 0;
 const check = (name, ok, detail = '') => {
@@ -73,15 +73,108 @@ check('every mark carries an alt text', alt.bare === 0, `${alt.n} marks, ${alt.b
 // One per interactive mark. Assert the STATE the reader is left in, not that a click
 // happened: "the readout says 1907", "tapping again releases it", "the stepper moves one".
 
+// A tap on a timeline dot opens that page in the card above it.
+{
+  const nameBefore = await p.$eval('#page-name', (e) => e.textContent);
+  await p.locator('#timeline-plate').scrollIntoViewIfNeeded();
+  await p.waitForTimeout(2200);
+  // The page card is sticky above the phone timeline, so the dot is scrolled to mid-screen first.
+  await p.$eval('#timeline-plate .m-dots circle[data-i="40"]', (c) => {
+    const r = c.getBoundingClientRect();
+    window.scrollTo(0, r.top + window.scrollY - window.innerHeight * 0.65);
+  });
+  await p.waitForTimeout(300);
+  const box = await p.locator('#timeline-plate svg').boundingBox();
+  const dot = await p.$eval('#timeline-plate .m-dots circle[data-i="40"]', (c) => ({ cx: +c.getAttribute('cx'), cy: +c.getAttribute('cy') }));
+  await p.touchscreen.tap(box.x + dot.cx, box.y + dot.cy);
+  await p.waitForTimeout(900);
+  const nameAfter = await p.$eval('#page-name', (e) => e.textContent);
+  check('tapping a timeline dot opens that page', nameAfter !== nameBefore && nameAfter.length > 0, `${nameBefore} -> ${nameAfter}`);
+  const facts = await p.$eval('#page-facts', (e) => e.textContent);
+  check('the card names the record day and the views', /Record day/.test(facts) && /views that day/.test(facts), facts.slice(0, 80));
+}
+// A tap on a square holds its readout.
+{
+  await p.locator('#settled-plate').scrollIntoViewIfNeeded();
+  await p.waitForTimeout(1600);
+  const box = await p.locator('#settled-plate svg').boundingBox();
+  const sq = await p.$eval('#settled-plate .m-rows rect[data-i="100"]', (r) => ({ x: +r.getAttribute('x') + r.getAttribute('width') / 2, y: +r.getAttribute('y') + r.getAttribute('height') / 2 }));
+  await p.touchscreen.tap(box.x + sq.x, box.y + sq.y);
+  await p.waitForTimeout(300);
+  const tip = await p.$eval('#settled-tip', (t) => ({ hidden: t.hidden, text: t.textContent }));
+  check('tapping a square holds its readout', !tip.hidden && /× its normal level/.test(tip.text), tip.text);
+}
+
 // ---------------------------------------------------------------- desktop keyboard
 const ctx2 = await b.newContext({ viewport: { width: 1440, height: 900 } });
 const p2 = await ctx2.newPage();
+p2.on('pageerror', (e) => errs.push('desktop: ' + e.message));
 await p2.goto(BASE, { waitUntil: 'networkidle' });
 await p2.evaluate(() => document.fonts.ready);
 console.log('desktop 1440 x 900');
 await p2.keyboard.press('Tab');
 const focused = await p2.evaluate(() => document.activeElement && document.activeElement.tagName);
 check('the keyboard reaches the page', !!focused && focused !== 'BODY', focused || 'none');
+
+// The stopwatch: wait out the arrival replay, then drag the knob, replay, and use the keys.
+await p2.waitForTimeout(6500);
+{
+  const day = async () => +(await p2.$eval('#clock-d', (e) => e.textContent));
+  check('the stopwatch rests at the last day', (await day()) === 340, String(await day()));
+  await p2.$eval('#field-plate .m-knob', (k) => k.scrollIntoView({ block: 'center' }));
+  await p2.waitForTimeout(200);
+  const box = await p2.locator('#field-plate svg').boundingBox();
+  const knob = await p2.$eval('#field-plate .m-knob', (k) => { const r = k.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await p2.mouse.move(knob.x, knob.y);
+  await p2.mouse.down();
+  await p2.mouse.move(box.x + box.width * 0.25, knob.y, { steps: 8 });
+  await p2.mouse.up();
+  await p2.waitForTimeout(200);
+  const dragged = await day();
+  check('dragging the knob moves the day', dragged > 0 && dragged < 340, String(dragged));
+  const curtain = await p2.$eval('#field-plate .m-curtain', (r) => +r.getAttribute('x'));
+  check('and the field is drawn only up to that day', curtain < box.width * 0.9, `curtain from ${Math.round(curtain)} of ${Math.round(box.width)}`);
+  const line = await p2.$eval('#clock-line', (e) => e.textContent);
+  check('and the readout counts pages back and still high', /back to normal/.test(line) && /still high/.test(line), line);
+  await p2.click('#replay');
+  await p2.waitForTimeout(400);
+  const early = await day();
+  check('replay starts again from the first days', early < 60, String(early));
+  await p2.waitForTimeout(6000);
+  check('and ends at the last day', (await day()) === 340, String(await day()));
+  await p2.focus('#clock-range');
+  await p2.keyboard.press('ArrowLeft');
+  await p2.waitForTimeout(100);
+  check('the keyboard moves the stopwatch', (await day()) === 339, String(await day()));
+}
+// Hovering a curve and a dot each show a readout naming the page; clicking a dot opens it.
+{
+  await p2.locator('#leap-plate').scrollIntoViewIfNeeded();
+  await p2.waitForTimeout(1600);
+  const box = await p2.locator('#leap-plate svg').boundingBox();
+  const c = await p2.$eval('#leap-plate .m-rows path[data-i="12"]', (el) => {
+    const m = el.getAttribute('d').match(/M([\d.]+) ([\d.]+)C.* ([\d.]+) ([\d.]+)$/);
+    return { x0: +m[1], bot: +m[2], x1: +m[3], top: +m[4] };
+  });
+  await p2.mouse.move(box.x + (c.x0 + c.x1) / 2, box.y + (c.bot + c.top) / 2);
+  await p2.waitForTimeout(150);
+  const tip = await p2.$eval('#leap-tip', (t) => ({ hidden: t.hidden, text: t.textContent }));
+  check('hovering a curve names the page and its two readings', !tip.hidden && /→/.test(tip.text), tip.text);
+}
+{
+  await p2.locator('#timeline-plate').scrollIntoViewIfNeeded();
+  await p2.waitForTimeout(2200);
+  const box = await p2.locator('#timeline-plate svg').boundingBox();
+  const dot = await p2.$eval('#timeline-plate .m-dots circle[data-i="3"]', (c) => ({ cx: +c.getAttribute('cx'), cy: +c.getAttribute('cy') }));
+  await p2.mouse.move(box.x + dot.cx, box.y + dot.cy);
+  await p2.waitForTimeout(150);
+  const tip = await p2.$eval('#timeline-tip', (t) => ({ hidden: t.hidden, text: t.textContent }));
+  check('hovering a dot names the page and its date', !tip.hidden && /20\d\d/.test(tip.text), tip.text);
+  await p2.mouse.click(box.x + dot.cx, box.y + dot.cy);
+  await p2.waitForTimeout(900);
+  const name = await p2.$eval('#page-name', (e) => e.textContent);
+  check('clicking it opens that page below', name !== 'Charlie Kirk' && name.length > 0, name);
+}
 
 check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
 

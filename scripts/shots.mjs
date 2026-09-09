@@ -17,8 +17,7 @@ const BASE = process.argv[2] ?? 'http://[::1]:4331/';
 const OUT = process.argv[3] ?? 'shots';
 const ONLY = process.argv[4];
 
-const SECTIONS = [['#held', 'held'], ['#arrival', 'arrival'], ['#settle', 'settle'], ['#groups', 'groups'],
-                  ['#artefact', 'artefact'], ['#weekday', 'weekday'], ['#shared', 'shared'], ['#return', 'return'], ['#window', 'window'], ['#agree', 'agree'], ['#stop', 'stop']];
+const SECTIONS = [['#field', 'field'], ['#leap', 'leap'], ['#settled', 'settled'], ['#weekdays', 'weekdays'], ['#timeline', 'timeline'], ['#all', 'all']];
 
 const SIZES = [
   { name: 'desktop-1440', w: 1440, h: 900, dpr: 1 },
@@ -74,9 +73,14 @@ for (const s of SIZES) {
     await p.screenshot({ path: path.join(OUT, `${s.name}-full.png`), fullPage: true });
   }
 
+  // Each mark replays its drawing when it scrolls into view, so a section shot waits for the
+  // replay to finish, or it captures the first frame of a wipe and reads as a blank plate.
   for (const [sel, name] of SECTIONS) {
     const el = p.locator(sel);
-    if (await el.count()) await el.screenshot({ path: path.join(OUT, `${s.name}-${name}.png`) });
+    if (!(await el.count())) continue;
+    await el.scrollIntoViewIfNeeded();
+    await p.waitForTimeout(sel === '#field' ? 6500 : 2300);   // the first section replays the stopwatch
+    await el.screenshot({ path: path.join(OUT, `${s.name}-${name}.png`) });
   }
 
   console.log(
